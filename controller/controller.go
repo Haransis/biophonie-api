@@ -34,9 +34,9 @@ func NewController() *Controller {
 // @Accept json
 // @Produce json
 // @Param user body user.AddUser true "Add user"
-// @Success 200 {object} user.AddUser
+// @Success 201 {object} user.AddUser
 // @Failure 400 {object} httputil.HTTPError
-// @Failure 404 {object} httputil.HTTPError
+// @Failure 409 {object} httputil.HTTPError
 // @Failure 500 {object} httputil.HTTPError
 // @Router /user [post]
 func (c *Controller) CreateUser(ctx *gin.Context) {
@@ -48,10 +48,14 @@ func (c *Controller) CreateUser(ctx *gin.Context) {
 
 	if _, err := c.Db.Exec("INSERT INTO accounts (username, created_on, last_login) VALUES ($1,now(),now())", addUser.Username); err != nil {
 		if err, ok := err.(*pq.Error); ok {
-			httputil.NewError(ctx, http.StatusConflict, errors.New(err.Code.Name()))
-			return
+			if err.Code.Name() == "unique_violation" {
+				httputil.NewError(ctx, http.StatusConflict, fmt.Errorf("user with username %s already exists", addUser.Username))
+				return
+			} else {
+				httputil.NewError(ctx, http.StatusInternalServerError, errors.New(err.Code.Name()))
+				return
+			}
 		}
-		httputil.NewError(ctx, http.StatusInternalServerError, errors.New("server was unable to process request"))
 		log.Panic(err)
 	}
 
