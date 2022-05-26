@@ -39,6 +39,12 @@ func main() {
 			users.GET("/:username", controller.GetUser)
 			users.POST("", controller.CreateUser)
 		}
+		geopoints := v1.Group("/geopoint")
+		{
+			geopoints.GET("/:id", controller.GetGeoPoint)
+			geopoints.POST("", controller.CreateGeoPoint)
+			geopoints.GET("/:id/picture", controller.GetPicture)
+		}
 	}
 	r.GET("/ping", controller.Pong)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

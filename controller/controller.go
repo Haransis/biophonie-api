@@ -91,6 +91,59 @@ func (c *Controller) GetUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
+// GetGeoPoint godoc
+// @Summary get a geopoint
+// @Description retrieve the geopoint in the database using its name
+// @Accept json
+// @Produce json
+// @Param id path int true "geopoint id"
+// @Success 200 {object} geopoint.GeoPoint
+// @Failure 400 {object} httputil.HTTPError
+// @Failure 404 {object} httputil.HTTPError
+// @Failure 500 {object} httputil.HTTPError
+// @Router /geopoint/{id} [get]
+func (c *Controller) GetGeoPoint(ctx *gin.Context) {
+	// TODO (not implemented)
+
+	ctx.JSON(http.StatusOK, "OK")
+}
+
+// CreateGeoPoint godoc
+// @Summary create a geopoint
+// @Description create the geopoint in the database and receive the sound and picture file
+// @Accept mpfd
+// @Produce json
+// @Param geopoint formData geopoint.AddGeoPoint true "geopoint infos"
+// @Param sound formData file true "geopoint sound"
+// @Param picture formData file true "geopoint picture"
+// @Success 200 {object} geopoint.GeoPoint
+// @Failure 400 {object} httputil.HTTPError
+// @Failure 404 {object} httputil.HTTPError
+// @Failure 500 {object} httputil.HTTPError
+// @Router /geopoint [post]
+func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
+	// TODO (not implemented)
+
+	ctx.JSON(http.StatusOK, "OK")
+}
+
+// GetPicture godoc
+// @Summary get the url of the picture
+// @Description create the geopoint in the database and receive the sound and picture file
+// @Accept json
+// @Produce json
+// @Param id path int true "geopoint id"
+// @Success 200 {string} string
+// @Failure 400 {object} httputil.HTTPError
+// @Failure 404 {object} httputil.HTTPError
+// @Failure 500 {object} httputil.HTTPError
+// @Router /geopoint/{id}/picture [get]
+func (c *Controller) GetPicture(ctx *gin.Context) {
+	// TODO (not implemented)
+
+	ctx.JSON(http.StatusOK, "OK")
+}
+
 func (c *Controller) Pong(ctx *gin.Context) {
 	ctx.JSON(200, gin.H{
 		"message": "pong",

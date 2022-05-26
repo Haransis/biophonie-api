@@ -1,5 +1,10 @@
 basePath: /api/v1
 definitions:
+  geopoint.GeoPoint:
+    properties:
+      toDo:
+        type: string
+    type: object
   httputil.HTTPError:
     properties:
       code:
@@ -50,6 +55,109 @@ info:
   title: Swagger for biophonie-api
   version: "1.0"
 paths:
+  /geopoint:
+    post:
+      consumes:
+      - multipart/form-data
+      description: create the geopoint in the database and receive the sound and picture
+        file
+      parameters:
+      - in: formData
+        name: toDo
+        type: string
+      - description: geopoint sound
+        in: formData
+        name: sound
+        required: true
+        type: file
+      - description: geopoint picture
+        in: formData
+        name: picture
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/geopoint.GeoPoint'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      summary: create a geopoint
+  /geopoint/{id}:
+    get:
+      consumes:
+      - application/json
+      description: retrieve the geopoint in the database using its name
+      parameters:
+      - description: geopoint id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/geopoint.GeoPoint'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      summary: get a geopoint
+  /geopoint/{id}/picture:
+    get:
+      consumes:
+      - application/json
+      description: create the geopoint in the database and receive the sound and picture
+        file
+      parameters:
+      - description: geopoint id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      summary: get the url of the picture
   /user:
     post:
       consumes:
@@ -65,16 +173,16 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "201":
+          description: Created
           schema:
             $ref: '#/definitions/user.AddUser'
         "400":
           description: Bad Request
           schema:
             $ref: '#/definitions/httputil.HTTPError'
-        "404":
-          description: Not Found
+        "409":
+          description: Conflict
           schema:
             $ref: '#/definitions/httputil.HTTPError'
         "500":
