@@ -1,0 +1,116 @@
+basePath: /api/v1
+definitions:
+  httputil.HTTPError:
+    properties:
+      code:
+        example: 400
+        type: integer
+      message:
+        example: status bad request
+        type: string
+    type: object
+  user.AddUser:
+    properties:
+      username:
+        example: bob
+        type: string
+    required:
+    - username
+    type: object
+  user.User:
+    properties:
+      created_on:
+        example: "2022-05-26T11:17:35.079344Z"
+        type: string
+      last_login:
+        example: "2022-05-26T11:17:35.079344Z"
+        type: string
+      token:
+        example: auinrsetanruistnstnaustie
+        type: string
+      user_id:
+        example: 123
+        type: integer
+      username:
+        example: bob
+        type: string
+    required:
+    - username
+    type: object
+info:
+  contact:
+    email: TODO
+    name: TODO
+    url: TODO
+  description: API of biophonie (https://secret-garden-77375.herokuapp.com/).
+  license:
+    name: GPL-3.0 license
+    url: https://www.gnu.org/licenses/gpl-3.0.en.html
+  termsOfService: TODO
+  title: Swagger for biophonie-api
+  version: "1.0"
+paths:
+  /user:
+    post:
+      consumes:
+      - application/json
+      description: create a user in the database
+      parameters:
+      - description: Add user
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/user.AddUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.AddUser'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      summary: create user
+  /user/{username}:
+    get:
+      consumes:
+      - application/json
+      description: retrieve the user in the database using its name
+      parameters:
+      - description: user name
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      summary: get a user
+swagger: "2.0"

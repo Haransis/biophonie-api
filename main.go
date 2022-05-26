@@ -4,28 +4,46 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
-	"github.com/haran/biophonie-api/database"
-	"github.com/haran/biophonie-api/router"
-	_ "github.com/lib/pq"
+	"github.com/haran/biophonie-api/controller"
+	_ "github.com/haran/biophonie-api/docs"
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func main() {
-	db, err := database.InitDb()
-	if err != nil {
-		log.Fatalf("Error initializing database: %q", err)
-	}
+// @title Swagger for biophonie-api
+// @version         1.0
+// @description     API of biophonie (https://secret-garden-77375.herokuapp.com/).
+// @termsOfService  TODO
 
-	router := &router.Router{
-		Db: db,
-	}
+// @contact.name   TODO
+// @contact.url    TODO
+// @contact.email  TODO
+
+// @license.name  GPL-3.0 license
+// @license.url   https://www.gnu.org/licenses/gpl-3.0.en.html
+
+// @BasePath /api/v1
+
+func main() {
+
+	controller := controller.NewController()
 
 	r := gin.Default()
-	r.GET("/ping", router.Pong())
-	r.GET("/user", router.GetUser())
-	r.POST("/user", router.CreateUser())
+	r.SetTrustedProxies(nil)
 
-	err = r.Run()
-	if err != nil {
+	v1 := r.Group("/api/v1")
+	{
+		users := v1.Group("/user")
+		{
+			users.GET("/:username", controller.GetUser)
+			users.POST("", controller.CreateUser)
+		}
+	}
+	r.GET("/ping", controller.Pong)
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	if err := r.Run(":8080"); err != nil {
 		log.Fatalf("Stopping server: %q", err)
-	} // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	}
 }
