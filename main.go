@@ -46,6 +46,8 @@ func main() {
 			geopoints.GET("/:id/picture", controller.GetPicture)
 		}
 	}
+
+	// r.UseH2C = true // try to use http2 maybe with next version of gin-gonic
 	r.GET("/ping", controller.Pong)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

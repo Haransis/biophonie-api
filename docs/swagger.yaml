@@ -2,7 +2,43 @@ basePath: /api/v1
 definitions:
   geopoint.GeoPoint:
     properties:
-      toDo:
+      amplitudes:
+        example:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 45
+        - 3
+        - 2
+        - 1
+        items:
+          type: integer
+        type: array
+      created_on:
+        example: "2022-05-26T11:17:35.079344Z"
+        type: string
+      id:
+        example: 1
+        type: integer
+      location:
+        $ref: '#/definitions/geopoint.Location'
+      picture:
+        example: https://example.com/picture-1.jpg
+        type: string
+      sound:
+        example: https://example.com/sound-2.mp3
+        type: string
+      title:
+        example: Forêt à l'aube
+        type: string
+      user_id:
+        example: 1
+        type: integer
+    type: object
+  geopoint.Location:
+    properties:
+      todo:
         type: string
     type: object
   httputil.HTTPError:
@@ -16,11 +52,11 @@ definitions:
     type: object
   user.AddUser:
     properties:
-      username:
+      name:
         example: bob
         type: string
     required:
-    - username
+    - name
     type: object
   user.User:
     properties:
@@ -30,17 +66,17 @@ definitions:
       last_login:
         example: "2022-05-26T11:17:35.079344Z"
         type: string
+      name:
+        example: bob
+        type: string
       token:
         example: auinrsetanruistnstnaustie
         type: string
       user_id:
         example: 123
         type: integer
-      username:
-        example: bob
-        type: string
     required:
-    - username
+    - name
     type: object
 info:
   contact:
@@ -62,9 +98,40 @@ paths:
       description: create the geopoint in the database and receive the sound and picture
         file
       parameters:
-      - in: formData
-        name: toDo
+      - example:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 45
+        - 3
+        - 2
+        - 1
+        in: formData
+        items:
+          type: integer
+        name: amplitudes
+        type: array
+      - example: "2022-05-26T11:17:35.079344Z"
+        in: formData
+        name: date
         type: string
+      - example:
+        - 38.652608
+        - -120.357448
+        in: formData
+        items:
+          type: number
+        name: location
+        type: array
+      - example: Forêt à l'aube
+        in: formData
+        name: title
+        type: string
+      - example: 1
+        in: formData
+        name: user_id
+        type: integer
       - description: geopoint sound
         in: formData
         name: sound
@@ -95,6 +162,8 @@ paths:
           schema:
             $ref: '#/definitions/httputil.HTTPError'
       summary: create a geopoint
+      tags:
+      - Geopoint
   /geopoint/{id}:
     get:
       consumes:
@@ -126,6 +195,8 @@ paths:
           schema:
             $ref: '#/definitions/httputil.HTTPError'
       summary: get a geopoint
+      tags:
+      - Geopoint
   /geopoint/{id}/picture:
     get:
       consumes:
@@ -158,6 +229,25 @@ paths:
           schema:
             $ref: '#/definitions/httputil.HTTPError'
       summary: get the url of the picture
+      tags:
+      - Geopoint
+  /ping:
+    get:
+      consumes:
+      - application/json
+      description: used to check if api is alive
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.HTTPError'
+      summary: pings the api
   /user:
     post:
       consumes:
@@ -190,6 +280,8 @@ paths:
           schema:
             $ref: '#/definitions/httputil.HTTPError'
       summary: create user
+      tags:
+      - User
   /user/{username}:
     get:
       consumes:
@@ -221,4 +313,6 @@ paths:
           schema:
             $ref: '#/definitions/httputil.HTTPError'
       summary: get a user
+      tags:
+      - User
 swagger: "2.0"

@@ -34,11 +34,57 @@ const docTemplate = `{
                 "produces": [
                     "application/json"
                 ],
+                "tags": [
+                    "Geopoint"
+                ],
                 "summary": "create a geopoint",
                 "parameters": [
                     {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "example": [
+                            0,
+                            1,
+                            2,
+                            3,
+                            45,
+                            3,
+                            2,
+                            1
+                        ],
+                        "name": "amplitudes",
+                        "in": "formData"
+                    },
+                    {
                         "type": "string",
-                        "name": "toDo",
+                        "example": "2022-05-26T11:17:35.079344Z",
+                        "name": "date",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "number"
+                        },
+                        "example": [
+                            38.652608,
+                            -120.357448
+                        ],
+                        "name": "location",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "example": "Forêt à l'aube",
+                        "name": "title",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "example": 1,
+                        "name": "user_id",
                         "in": "formData"
                     },
                     {
@@ -93,6 +139,9 @@ const docTemplate = `{
                 "produces": [
                     "application/json"
                 ],
+                "tags": [
+                    "Geopoint"
+                ],
                 "summary": "get a geopoint",
                 "parameters": [
                     {
@@ -140,6 +189,9 @@ const docTemplate = `{
                 "produces": [
                     "application/json"
                 ],
+                "tags": [
+                    "Geopoint"
+                ],
                 "summary": "get the url of the picture",
                 "parameters": [
                     {
@@ -178,6 +230,32 @@ const docTemplate = `{
                 }
             }
         },
+        "/ping": {
+            "get": {
+                "description": "used to check if api is alive",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "pings the api",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
         "/user": {
             "post": {
                 "description": "create a user in the database",
@@ -186,6 +264,9 @@ const docTemplate = `{
                 ],
                 "produces": [
                     "application/json"
+                ],
+                "tags": [
+                    "User"
                 ],
                 "summary": "create user",
                 "parameters": [
@@ -236,6 +317,9 @@ const docTemplate = `{
                 "produces": [
                     "application/json"
                 ],
+                "tags": [
+                    "User"
+                ],
                 "summary": "get a user",
                 "parameters": [
                     {
@@ -279,7 +363,55 @@ const docTemplate = `{
         "geopoint.GeoPoint": {
             "type": "object",
             "properties": {
-                "toDo": {
+                "amplitudes": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "example": [
+                        0,
+                        1,
+                        2,
+                        3,
+                        45,
+                        3,
+                        2,
+                        1
+                    ]
+                },
+                "created_on": {
+                    "type": "string",
+                    "example": "2022-05-26T11:17:35.079344Z"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "location": {
+                    "$ref": "#/definitions/geopoint.Location"
+                },
+                "picture": {
+                    "type": "string",
+                    "example": "https://example.com/picture-1.jpg"
+                },
+                "sound": {
+                    "type": "string",
+                    "example": "https://example.com/sound-2.mp3"
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Forêt à l'aube"
+                },
+                "user_id": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "geopoint.Location": {
+            "type": "object",
+            "properties": {
+                "todo": {
                     "type": "string"
                 }
             }
@@ -300,10 +432,10 @@ const docTemplate = `{
         "user.AddUser": {
             "type": "object",
             "required": [
-                "username"
+                "name"
             ],
             "properties": {
-                "username": {
+                "name": {
                     "type": "string",
                     "example": "bob"
                 }
@@ -312,7 +444,7 @@ const docTemplate = `{
         "user.User": {
             "type": "object",
             "required": [
-                "username"
+                "name"
             ],
             "properties": {
                 "created_on": {
@@ -323,6 +455,10 @@ const docTemplate = `{
                     "type": "string",
                     "example": "2022-05-26T11:17:35.079344Z"
                 },
+                "name": {
+                    "type": "string",
+                    "example": "bob"
+                },
                 "token": {
                     "type": "string",
                     "example": "auinrsetanruistnstnaustie"
@@ -330,10 +466,6 @@ const docTemplate = `{
                 "user_id": {
                     "type": "integer",
                     "example": 123
-                },
-                "username": {
-                    "type": "string",
-                    "example": "bob"
                 }
             }
         }

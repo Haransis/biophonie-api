@@ -33,6 +33,7 @@ func NewController() *Controller {
 // @Description create a user in the database
 // @Accept json
 // @Produce json
+// @Tags User
 // @Param user body user.AddUser true "Add user"
 // @Success 201 {object} user.AddUser
 // @Failure 400 {object} httputil.HTTPError
@@ -46,10 +47,10 @@ func (c *Controller) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	if _, err := c.Db.Exec("INSERT INTO accounts (username, created_on, last_login) VALUES ($1,now(),now())", addUser.Username); err != nil {
+	if _, err := c.Db.Exec("INSERT INTO accounts (username, created_on) VALUES ($1,now())", addUser.Name); err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code.Name() == "unique_violation" {
-				httputil.NewError(ctx, http.StatusConflict, fmt.Errorf("user with username %s already exists", addUser.Username))
+				httputil.NewError(ctx, http.StatusConflict, fmt.Errorf("user with username %s already exists", addUser.Name))
 				return
 			} else {
 				httputil.NewError(ctx, http.StatusInternalServerError, errors.New(err.Code.Name()))
@@ -67,6 +68,7 @@ func (c *Controller) CreateUser(ctx *gin.Context) {
 // @Description retrieve the user in the database using its name
 // @Accept json
 // @Produce json
+// @Tags User
 // @Param username path string true "user name"
 // @Success 200 {object} user.User
 // @Failure 400 {object} httputil.HTTPError
@@ -96,6 +98,7 @@ func (c *Controller) GetUser(ctx *gin.Context) {
 // @Description retrieve the geopoint in the database using its name
 // @Accept json
 // @Produce json
+// @Tags Geopoint
 // @Param id path int true "geopoint id"
 // @Success 200 {object} geopoint.GeoPoint
 // @Failure 400 {object} httputil.HTTPError
@@ -113,6 +116,7 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 // @Description create the geopoint in the database and receive the sound and picture file
 // @Accept mpfd
 // @Produce json
+// @Tags Geopoint
 // @Param geopoint formData geopoint.AddGeoPoint true "geopoint infos"
 // @Param sound formData file true "geopoint sound"
 // @Param picture formData file true "geopoint picture"
@@ -132,6 +136,7 @@ func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
 // @Description create the geopoint in the database and receive the sound and picture file
 // @Accept json
 // @Produce json
+// @Tags Geopoint
 // @Param id path int true "geopoint id"
 // @Success 200 {string} string
 // @Failure 400 {object} httputil.HTTPError
@@ -144,6 +149,14 @@ func (c *Controller) GetPicture(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, "OK")
 }
 
+// GetPicture godoc
+// @Summary pings the api
+// @Description used to check if api is alive
+// @Accept json
+// @Produce json
+// @Success 200 {string} string
+// @Failure 500 {object} httputil.HTTPError
+// @Router /ping [get]
 func (c *Controller) Pong(ctx *gin.Context) {
 	ctx.JSON(200, gin.H{
 		"message": "pong",

@@ -10,11 +10,20 @@ import (
 
 const schema = `--sql
 	CREATE TABLE IF NOT EXISTS accounts (
-		user_id serial PRIMARY KEY,
-		username VARCHAR ( 50 ) UNIQUE NOT NULL,
+		id serial PRIMARY KEY,
+		name VARCHAR ( 50 ) UNIQUE NOT NULL,
+		created_on TIMESTAMP NOT NULL
+	);
+	CREATE TABLE IF NOT EXISTS geopoints (
+		id serial PRIMARY KEY,
+		title VARCHAR ( 30 ) UNIQUE NOT NULL,
+		user_id serial NOT NULL,
+		location geography ( POINT , 4326 ),
 		created_on TIMESTAMP NOT NULL,
-		last_login TIMESTAMP
-	)`
+		amplitudes int4 [],
+		picture VARCHAR ( 42 ) NOT NULL,
+		sound VARCHAR ( 42 ) NOT NULL
+	);`
 
 func InitDb() (*sqlx.DB, error) {
 	db, err := sqlx.Open("postgres", os.Getenv("DATABASE_URL"))
@@ -25,8 +34,9 @@ func InitDb() (*sqlx.DB, error) {
 	db.MustExec(schema)
 
 	tx := db.MustBegin()
-	tx.Exec("INSERT INTO accounts (username, created_on, last_login) VALUES ($1,now(),now())", "alice")
-	tx.Exec("INSERT INTO accounts (username, created_on, last_login) VALUES ($1,now(),now())", "bob")
+	tx.MustExec("INSERT INTO accounts (name, created_on) VALUES ($1,now()) ON CONFLICT DO NOTHING", "alice")
+	tx.MustExec("INSERT INTO accounts (name, created_on) VALUES ($1,now()) ON CONFLICT DO NOTHING", "bob")
+	tx.MustExec("INSERT INTO geopoints (title, user_id, location, created_on, amplitudes, picture, sound) VALUES ($1,$2,ST_GeomFromText($3),now(),$4,$5,$6) ON CONFLICT DO NOTHING", "Forest by night", "1", "Point(0.0 0.0)", "{1,2,3,4}", "https://example.com/image.jpg", "https://example.com/sound.mp3")
 	tx.Commit()
 
 	return db, nil
