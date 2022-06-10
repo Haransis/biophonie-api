@@ -325,7 +325,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "user name",
-                        "name": "username",
+                        "name": "name",
                         "in": "path",
                         "required": true
                     }
@@ -366,7 +366,7 @@ const docTemplate = `{
                 "amplitudes": {
                     "type": "array",
                     "items": {
-                        "type": "integer"
+                        "type": "number"
                     },
                     "example": [
                         0,
@@ -388,7 +388,7 @@ const docTemplate = `{
                     "example": 1
                 },
                 "location": {
-                    "$ref": "#/definitions/geopoint.Location"
+                    "$ref": "#/definitions/postgis.Point"
                 },
                 "picture": {
                     "type": "string",
@@ -408,14 +408,6 @@ const docTemplate = `{
                 }
             }
         },
-        "geopoint.Location": {
-            "type": "object",
-            "properties": {
-                "todo": {
-                    "type": "string"
-                }
-            }
-        },
         "httputil.HTTPError": {
             "type": "object",
             "properties": {
@@ -426,6 +418,17 @@ const docTemplate = `{
                 "message": {
                     "type": "string",
                     "example": "status bad request"
+                }
+            }
+        },
+        "postgis.Point": {
+            "type": "object",
+            "properties": {
+                "x": {
+                    "type": "number"
+                },
+                "y": {
+                    "type": "number"
                 }
             }
         },

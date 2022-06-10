@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
 )
 
 const schema = `--sql
@@ -20,7 +19,7 @@ const schema = `--sql
 		user_id serial NOT NULL,
 		location geography ( POINT , 4326 ),
 		created_on TIMESTAMP NOT NULL,
-		amplitudes int4 [],
+		amplitudes INT [],
 		picture VARCHAR ( 42 ) NOT NULL,
 		sound VARCHAR ( 42 ) NOT NULL
 	);`

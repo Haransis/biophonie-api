@@ -317,7 +317,7 @@
                     {
                         "type": "string",
                         "description": "user name",
-                        "name": "username",
+                        "name": "name",
                         "in": "path",
                         "required": true
                     }
@@ -358,7 +358,7 @@
                 "amplitudes": {
                     "type": "array",
                     "items": {
-                        "type": "integer"
+                        "type": "number"
                     },
                     "example": [
                         0,
@@ -380,7 +380,7 @@
                     "example": 1
                 },
                 "location": {
-                    "$ref": "#/definitions/geopoint.Location"
+                    "$ref": "#/definitions/postgis.Point"
                 },
                 "picture": {
                     "type": "string",
@@ -400,14 +400,6 @@
                 }
             }
         },
-        "geopoint.Location": {
-            "type": "object",
-            "properties": {
-                "todo": {
-                    "type": "string"
-                }
-            }
-        },
         "httputil.HTTPError": {
             "type": "object",
             "properties": {
@@ -418,6 +410,17 @@
                 "message": {
                     "type": "string",
                     "example": "status bad request"
+                }
+            }
+        },
+        "postgis.Point": {
+            "type": "object",
+            "properties": {
+                "x": {
+                    "type": "number"
+                },
+                "y": {
+                    "type": "number"
                 }
             }
         },

@@ -13,7 +13,7 @@ definitions:
         - 2
         - 1
         items:
-          type: integer
+          type: number
         type: array
       created_on:
         example: "2022-05-26T11:17:35.079344Z"
@@ -22,7 +22,7 @@ definitions:
         example: 1
         type: integer
       location:
-        $ref: '#/definitions/geopoint.Location'
+        $ref: '#/definitions/postgis.Point'
       picture:
         example: https://example.com/picture-1.jpg
         type: string
@@ -36,11 +36,6 @@ definitions:
         example: 1
         type: integer
     type: object
-  geopoint.Location:
-    properties:
-      todo:
-        type: string
-    type: object
   httputil.HTTPError:
     properties:
       code:
@@ -49,6 +44,13 @@ definitions:
       message:
         example: status bad request
         type: string
+    type: object
+  postgis.Point:
+    properties:
+      x:
+        type: number
+      "y":
+        type: number
     type: object
   user.AddUser:
     properties:
@@ -290,7 +292,7 @@ paths:
       parameters:
       - description: user name
         in: path
-        name: username
+        name: name
         required: true
         type: string
       produces:

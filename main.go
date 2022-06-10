@@ -36,7 +36,7 @@ func main() {
 	{
 		users := v1.Group("/user")
 		{
-			users.GET("/:username", controller.GetUser)
+			users.GET("/:name", controller.GetUser)
 			users.POST("", controller.CreateUser)
 		}
 		geopoints := v1.Group("/geopoint")

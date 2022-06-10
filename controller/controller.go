@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/haran/biophonie-api/controller/geopoint"
 	"github.com/haran/biophonie-api/controller/user"
 	"github.com/haran/biophonie-api/database"
 	"github.com/haran/biophonie-api/httputil"
@@ -69,24 +70,24 @@ func (c *Controller) CreateUser(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Tags User
-// @Param username path string true "user name"
+// @Param name path string true "user name"
 // @Success 200 {object} user.User
 // @Failure 400 {object} httputil.HTTPError
 // @Failure 404 {object} httputil.HTTPError
 // @Failure 500 {object} httputil.HTTPError
 // @Router /user/{username} [get]
 func (c *Controller) GetUser(ctx *gin.Context) {
-	username := ctx.Param("username")
+	name := ctx.Param("name")
 
 	var user user.User
-	if err := c.Db.Get(&user, "SELECT * FROM accounts WHERE username = $1", username); err != nil {
+	if err := c.Db.Get(&user, "SELECT * FROM accounts WHERE name = $1", name); err != nil {
 		if err == sql.ErrNoRows {
-			ctx.String(http.StatusInternalServerError,
-				fmt.Sprintf("error reading accounts: unknown username %s", username))
+			ctx.String(http.StatusNotFound,
+				fmt.Sprintf("error reading accounts: unknown user %s", name))
 			return
 		} else {
 			ctx.Status(http.StatusInternalServerError)
-			log.Panicf("error while reading accounts: %q", err)
+			log.Panicf("error reading accounts: %q", err)
 		}
 	}
 
@@ -106,9 +107,21 @@ func (c *Controller) GetUser(ctx *gin.Context) {
 // @Failure 500 {object} httputil.HTTPError
 // @Router /geopoint/{id} [get]
 func (c *Controller) GetGeoPoint(ctx *gin.Context) {
-	// TODO (not implemented)
+	id := ctx.Param("id")
 
-	ctx.JSON(http.StatusOK, "OK")
+	var geopoint geopoint.GeoPoint
+	if err := c.Db.Get(&geopoint, "SELECT * FROM geopoints WHERE id = $1", id); err != nil {
+		if err == sql.ErrNoRows {
+			ctx.String(http.StatusNotFound,
+				fmt.Sprintf("error reading geopoints: unknown geopoint %s", id))
+			return
+		} else {
+			ctx.Status(http.StatusInternalServerError)
+			log.Panicf("error reading geopoints: %q", err)
+		}
+	}
+
+	ctx.JSON(http.StatusOK, geopoint)
 }
 
 // CreateGeoPoint godoc
