@@ -13,7 +13,7 @@ import (
 
 // @title Swagger for biophonie-api
 // @version         1.0
-// @description     API of biophonie (https://secret-garden-77375.herokuapp.com/).
+// @description     API of biophonie (https://secret-garden-77375.herokuapp.com/). Files are located in "assets/"
 // @termsOfService  TODO
 
 // @contact.name   TODO
@@ -31,9 +31,10 @@ func main() {
 
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
-
+	r.MaxMultipartMemory = 10000000 // 10 MB
 	v1 := r.Group("/api/v1")
 	{
+		v1.Static("/assets", "./public")
 		users := v1.Group("/user")
 		{
 			users.GET("/:name", controller.GetUser)

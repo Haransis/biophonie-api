@@ -15,7 +15,7 @@ definitions:
         items:
           type: number
         type: array
-      created_on:
+      createdOn:
         example: "2022-05-26T11:17:35.079344Z"
         type: string
       id:
@@ -27,12 +27,12 @@ definitions:
         example: https://example.com/picture-1.jpg
         type: string
       sound:
-        example: https://example.com/sound-2.mp3
+        example: https://example.com/sound-2.wav
         type: string
       title:
         example: Forêt à l'aube
         type: string
-      user_id:
+      userId:
         example: 1
         type: integer
     type: object
@@ -62,10 +62,10 @@ definitions:
     type: object
   user.User:
     properties:
-      created_on:
+      createdOn:
         example: "2022-05-26T11:17:35.079344Z"
         type: string
-      last_login:
+      lastLogin:
         example: "2022-05-26T11:17:35.079344Z"
         type: string
       name:
@@ -74,7 +74,7 @@ definitions:
       token:
         example: auinrsetanruistnstnaustie
         type: string
-      user_id:
+      userId:
         example: 123
         type: integer
     required:
@@ -85,7 +85,8 @@ info:
     email: TODO
     name: TODO
     url: TODO
-  description: API of biophonie (https://secret-garden-77375.herokuapp.com/).
+  description: API of biophonie (https://secret-garden-77375.herokuapp.com/). Files
+    are located in "assets/"
   license:
     name: GPL-3.0 license
     url: https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -98,42 +99,13 @@ paths:
       consumes:
       - multipart/form-data
       description: create the geopoint in the database and receive the sound and picture
-        file
+        file (see testgeopoint dir)
       parameters:
-      - example:
-        - 0
-        - 1
-        - 2
-        - 3
-        - 45
-        - 3
-        - 2
-        - 1
+      - description: geopoint infos in a utf-8 json file
         in: formData
-        items:
-          type: integer
-        name: amplitudes
-        type: array
-      - example: "2022-05-26T11:17:35.079344Z"
-        in: formData
-        name: date
-        type: string
-      - example:
-        - 38.652608
-        - -120.357448
-        in: formData
-        items:
-          type: number
-        name: location
-        type: array
-      - example: Forêt à l'aube
-        in: formData
-        name: title
-        type: string
-      - example: 1
-        in: formData
-        name: user_id
-        type: integer
+        name: geopoint
+        required: true
+        type: file
       - description: geopoint sound
         in: formData
         name: sound
@@ -151,10 +123,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/geopoint.GeoPoint'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/httputil.HTTPError'
         "404":
           description: Not Found
           schema:
@@ -261,7 +229,7 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/user.AddUser'
+          $ref: '#/definitions/user.User'
       produces:
       - application/json
       responses:
@@ -284,7 +252,7 @@ paths:
       summary: create user
       tags:
       - User
-  /user/{username}:
+  /user/{name}:
     get:
       consumes:
       - application/json

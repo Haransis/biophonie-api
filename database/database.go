@@ -15,7 +15,7 @@ const schema = `--sql
 	);
 	CREATE TABLE IF NOT EXISTS geopoints (
 		id serial PRIMARY KEY,
-		title VARCHAR ( 30 ) UNIQUE NOT NULL,
+		title VARCHAR ( 30 ) NOT NULL,
 		user_id serial NOT NULL,
 		location geography ( POINT , 4326 ),
 		created_on TIMESTAMP NOT NULL,

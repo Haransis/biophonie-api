@@ -27,7 +27,7 @@ const docTemplate = `{
     "paths": {
         "/geopoint": {
             "post": {
-                "description": "create the geopoint in the database and receive the sound and picture file",
+                "description": "create the geopoint in the database and receive the sound and picture file (see testgeopoint dir)",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -40,52 +40,11 @@ const docTemplate = `{
                 "summary": "create a geopoint",
                 "parameters": [
                     {
-                        "type": "array",
-                        "items": {
-                            "type": "integer"
-                        },
-                        "example": [
-                            0,
-                            1,
-                            2,
-                            3,
-                            45,
-                            3,
-                            2,
-                            1
-                        ],
-                        "name": "amplitudes",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "example": "2022-05-26T11:17:35.079344Z",
-                        "name": "date",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "array",
-                        "items": {
-                            "type": "number"
-                        },
-                        "example": [
-                            38.652608,
-                            -120.357448
-                        ],
-                        "name": "location",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "example": "Forêt à l'aube",
-                        "name": "title",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "integer",
-                        "example": 1,
-                        "name": "user_id",
-                        "in": "formData"
+                        "type": "file",
+                        "description": "geopoint infos in a utf-8 json file",
+                        "name": "geopoint",
+                        "in": "formData",
+                        "required": true
                     },
                     {
                         "type": "file",
@@ -107,12 +66,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/geopoint.GeoPoint"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/httputil.HTTPError"
                         }
                     },
                     "404": {
@@ -276,7 +229,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/user.AddUser"
+                            "$ref": "#/definitions/user.User"
                         }
                     }
                 ],
@@ -308,7 +261,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/user/{username}": {
+        "/user/{name}": {
             "get": {
                 "description": "retrieve the user in the database using its name",
                 "consumes": [
@@ -379,7 +332,7 @@ const docTemplate = `{
                         1
                     ]
                 },
-                "created_on": {
+                "createdOn": {
                     "type": "string",
                     "example": "2022-05-26T11:17:35.079344Z"
                 },
@@ -396,13 +349,13 @@ const docTemplate = `{
                 },
                 "sound": {
                     "type": "string",
-                    "example": "https://example.com/sound-2.mp3"
+                    "example": "https://example.com/sound-2.wav"
                 },
                 "title": {
                     "type": "string",
                     "example": "Forêt à l'aube"
                 },
-                "user_id": {
+                "userId": {
                     "type": "integer",
                     "example": 1
                 }
@@ -450,11 +403,11 @@ const docTemplate = `{
                 "name"
             ],
             "properties": {
-                "created_on": {
+                "createdOn": {
                     "type": "string",
                     "example": "2022-05-26T11:17:35.079344Z"
                 },
-                "last_login": {
+                "lastLogin": {
                     "type": "string",
                     "example": "2022-05-26T11:17:35.079344Z"
                 },
@@ -466,7 +419,7 @@ const docTemplate = `{
                     "type": "string",
                     "example": "auinrsetanruistnstnaustie"
                 },
-                "user_id": {
+                "userId": {
                     "type": "integer",
                     "example": 123
                 }
@@ -482,7 +435,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "Swagger for biophonie-api",
-	Description:      "API of biophonie (https://secret-garden-77375.herokuapp.com/).",
+	Description:      "API of biophonie (https://secret-garden-77375.herokuapp.com/). Files are located in \"assets/\"",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 }
