@@ -123,7 +123,7 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 	}
 }
 
-// CreateGeoPoint godoc
+// BindGeoPoint godoc
 // @Summary create a geopoint
 // @Description create the geopoint in the database and receive the sound and picture file (see testgeopoint dir)
 // @Accept mpfd
@@ -136,19 +136,9 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 // @Failure 404 {object} controller.ErrMsg
 // @Failure 500 {object} controller.ErrMsg
 // @Router /geopoint [post]
-func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
-	var bindGeo geopoint.BindGeopoint
+func (c *Controller) BindGeoPoint(ctx *gin.Context) {
+	var bindGeo geopoint.BindGeoPoint
 	if err := ctx.Bind(&bindGeo); err != nil {
-		return
-	}
-
-	if !httputil.CheckFileContentType(bindGeo.Sound, "audio/wave") {
-		ctx.AbortWithError(http.StatusBadRequest, errors.New("sound was not wave file")).SetType(gin.ErrorTypePublic)
-		return
-	}
-
-	if !httputil.CheckFileContentType(bindGeo.Picture, "image/jpeg") {
-		ctx.AbortWithError(http.StatusBadRequest, errors.New("image was not jpeg file")).SetType(gin.ErrorTypePublic)
 		return
 	}
 
@@ -163,14 +153,14 @@ func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not read geofile: %s", err))
 	}
 
-	var addGeoPoint geopoint.AddGeoPoint
-	if err := json.Unmarshal(geoBytes, &addGeoPoint); err != nil {
+	var addGeo geopoint.AddGeoPoint
+	if err := json.Unmarshal(geoBytes, &addGeo); err != nil {
 		ctx.AbortWithError(http.StatusBadRequest, err).SetType(gin.ErrorTypePublic)
 		return
 	}
 
 	var userExists bool
-	if err := c.Db.Get(&userExists, "SELECT EXISTS(SELECT 1 FROM accounts WHERE id=$1)", addGeoPoint.UserId); err != nil {
+	if err := c.Db.Get(&userExists, "SELECT EXISTS(SELECT 1 FROM accounts WHERE id=$1)", addGeo.UserId); err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not check if user exists: %s", err))
 		return
 	}
@@ -181,17 +171,39 @@ func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
 	}
 
 	geoPoint := geopoint.GeoPoint{
-		Title:  addGeoPoint.Title,
-		UserId: addGeoPoint.UserId,
+		Title:  addGeo.Title,
+		UserId: addGeo.UserId,
 		Location: postgis.Point{
-			X: addGeoPoint.Location[0],
-			Y: addGeoPoint.Location[1],
+			X: addGeo.Location[0],
+			Y: addGeo.Location[1],
 		},
-		CreatedOn:  addGeoPoint.Date,
-		Amplitudes: addGeoPoint.Amplitudes,
+		CreatedOn:  addGeo.Date,
+		Amplitudes: addGeo.Amplitudes,
 		Picture:    fmt.Sprintf("%s.jpg", uuid.New()),
 		Sound:      fmt.Sprintf("%s.wav", uuid.New()),
 	}
+
+	ctx.Set("bindGeo", bindGeo)
+	ctx.Set("geoPoint", geoPoint)
+}
+
+func (c *Controller) CheckGeoFiles(ctx *gin.Context) {
+	bindGeo, _ := ctx.MustGet("bindGeo").(geopoint.BindGeoPoint)
+
+	if !httputil.CheckFileContentType(bindGeo.Sound, "audio/wave") {
+		ctx.AbortWithError(http.StatusBadRequest, errors.New("sound was not wave file")).SetType(gin.ErrorTypePublic)
+		return
+	}
+
+	if !httputil.CheckFileContentType(bindGeo.Picture, "image/jpeg") {
+		ctx.AbortWithError(http.StatusBadRequest, errors.New("image was not jpeg file")).SetType(gin.ErrorTypePublic)
+		return
+	}
+}
+
+func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
+	bindGeo, _ := ctx.MustGet("bindGeo").(geopoint.BindGeoPoint)
+	geoPoint, _ := ctx.MustGet("geoPoint").(geopoint.GeoPoint)
 
 	stmt, err := c.Db.PrepareNamed("INSERT INTO geopoints (title, user_id, location, amplitudes, picture, sound, created_on) VALUES (:title,:user_id,GeomFromEWKB(:location),:amplitudes,:picture,:sound,:created_on) RETURNING id")
 	if err != nil {

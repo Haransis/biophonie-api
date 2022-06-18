@@ -27,7 +27,7 @@ type AddGeoPoint struct {
 	Amplitudes []int64   `json:"amplitudes" example:"0,1,2,3,45,3,2,1" binding:"required"`
 }
 
-type BindGeopoint struct {
+type BindGeoPoint struct {
 	Geopoint *multipart.FileHeader `form:"geopoint" binding:"required"`
 	Sound    *multipart.FileHeader `form:"sound" binding:"required"`
 	Picture  *multipart.FileHeader `form:"picture" binding:"required"`

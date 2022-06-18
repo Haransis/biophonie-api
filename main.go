@@ -52,7 +52,7 @@ func setupRouter() *gin.Engine {
 		geopoints := v1.Group("/geopoint")
 		{
 			geopoints.GET("/:id", c.GetGeoPoint)
-			geopoints.POST("", c.CreateGeoPoint)
+			geopoints.POST("", c.BindGeoPoint, c.CheckGeoFiles, c.CreateGeoPoint)
 			geopoints.GET("/:id/picture", c.GetPicture)
 		}
 	}
