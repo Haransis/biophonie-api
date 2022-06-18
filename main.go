@@ -54,6 +54,7 @@ func setupRouter() *gin.Engine {
 			geopoints.GET("/:id", c.GetGeoPoint)
 			geopoints.POST("", c.BindGeoPoint, c.CheckGeoFiles, c.CreateGeoPoint)
 			geopoints.GET("/:id/picture", c.GetPicture)
+			geopoints.GET("/:id/sound", c.GetSound)
 		}
 	}
 

@@ -27,7 +27,7 @@ const docTemplate = `{
     "paths": {
         "/geopoint": {
             "post": {
-                "description": "create the geopoint in the database and receive the sound and picture file (see testgeopoint dir)",
+                "description": "create the geopoint in the database and save the sound and picture file (see testgeopoint dir)",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -135,7 +135,7 @@ const docTemplate = `{
         },
         "/geopoint/{id}/picture": {
             "get": {
-                "description": "create the geopoint in the database and receive the sound and picture file",
+                "description": "located in assets/",
                 "consumes": [
                     "application/json"
                 ],
@@ -145,7 +145,57 @@ const docTemplate = `{
                 "tags": [
                     "Geopoint"
                 ],
-                "summary": "get the url of the picture",
+                "summary": "get the picture filename",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "geopoint id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    }
+                }
+            }
+        },
+        "/geopoint/{id}/sound": {
+            "get": {
+                "description": "located in assets/",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Geopoint"
+                ],
+                "summary": "get the sound filename",
                 "parameters": [
                     {
                         "type": "integer",

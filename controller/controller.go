@@ -129,7 +129,7 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 
 // BindGeoPoint godoc
 // @Summary create a geopoint
-// @Description create the geopoint in the database and receive the sound and picture file (see testgeopoint dir)
+// @Description create the geopoint in the database and save the sound and picture file (see testgeopoint dir)
 // @Accept mpfd
 // @Produce json
 // @Tags Geopoint
@@ -235,8 +235,8 @@ func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
 }
 
 // GetPicture godoc
-// @Summary get the url of the picture
-// @Description create the geopoint in the database and receive the sound and picture file
+// @Summary get the picture filename
+// @Description located in assets/
 // @Accept json
 // @Produce json
 // @Tags Geopoint
@@ -247,12 +247,52 @@ func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
 // @Failure 500 {object} controller.ErrMsg
 // @Router /geopoint/{id}/picture [get]
 func (c *Controller) GetPicture(ctx *gin.Context) {
-	// TODO (not implemented)
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err).SetType(gin.ErrorTypePublic)
+		return
+	}
 
-	ctx.JSON(http.StatusOK, "OK")
+	var picture string
+	if err := c.Db.Get(&picture, "SELECT picture FROM geopoints WHERE id = $1", id); err != nil {
+		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not get picture")
+		ctx.Abort()
+		return
+	}
+
+	ctx.JSON(http.StatusOK, picture)
 }
 
-// GetPicture godoc
+// GetSound godoc
+// @Summary get the sound filename
+// @Description located in assets/
+// @Accept json
+// @Produce json
+// @Tags Geopoint
+// @Param id path int true "geopoint id"
+// @Success 200 {string} string
+// @Failure 400 {object} controller.ErrMsg
+// @Failure 404 {object} controller.ErrMsg
+// @Failure 500 {object} controller.ErrMsg
+// @Router /geopoint/{id}/sound [get]
+func (c *Controller) GetSound(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err).SetType(gin.ErrorTypePublic)
+		return
+	}
+
+	var sound string
+	if err := c.Db.Get(&sound, "SELECT sound FROM geopoints WHERE id = $1", id); err != nil {
+		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not get sound")
+		ctx.Abort()
+		return
+	}
+
+	ctx.JSON(http.StatusOK, sound)
+}
+
+// Pong godoc
 // @Summary pings the api
 // @Description used to check if api is alive
 // @Accept json
