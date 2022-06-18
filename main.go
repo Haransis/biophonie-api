@@ -26,10 +26,19 @@ import (
 // @BasePath /api/v1
 
 func main() {
+	r := setupRouter()
 
-	controller := controller.NewController()
+	if err := r.Run(":8080"); err != nil {
+		log.Fatalf("Stopping server: %q", err)
+	}
+}
+
+func setupRouter() *gin.Engine {
+
+	c := controller.NewController()
 
 	r := gin.Default()
+	r.Use(c.HandleErrors)
 	r.SetTrustedProxies(nil)
 	r.MaxMultipartMemory = 10000000 // 10 MB
 	v1 := r.Group("/api/v1")
@@ -37,22 +46,19 @@ func main() {
 		v1.Static("/assets", "./public")
 		users := v1.Group("/user")
 		{
-			users.GET("/:name", controller.GetUser)
-			users.POST("", controller.CreateUser)
+			users.GET("/:name", c.GetUser)
+			users.POST("", c.CreateUser)
 		}
 		geopoints := v1.Group("/geopoint")
 		{
-			geopoints.GET("/:id", controller.GetGeoPoint)
-			geopoints.POST("", controller.CreateGeoPoint)
-			geopoints.GET("/:id/picture", controller.GetPicture)
+			geopoints.GET("/:id", c.GetGeoPoint)
+			geopoints.POST("", c.CreateGeoPoint)
+			geopoints.GET("/:id/picture", c.GetPicture)
 		}
 	}
 
 	// r.UseH2C = true // try to use http2 maybe with next version of gin-gonic
-	r.GET("/ping", controller.Pong)
+	r.GET("/ping", c.Pong)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
-	if err := r.Run(":8080"); err != nil {
-		log.Fatalf("Stopping server: %q", err)
-	}
+	return r
 }

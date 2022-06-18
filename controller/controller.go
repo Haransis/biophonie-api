@@ -17,7 +17,6 @@ import (
 	"github.com/haran/biophonie-api/database"
 	"github.com/haran/biophonie-api/httputil"
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 )
 
 type Controller struct {
@@ -27,7 +26,7 @@ type Controller struct {
 func NewController() *Controller {
 	db, err := database.InitDb()
 	if err != nil {
-		log.Fatalf("Error initializing database: %q", err)
+		log.Fatalf("error initializing database: %q", err)
 	}
 
 	return &Controller{Db: db}
@@ -41,39 +40,36 @@ func NewController() *Controller {
 // @Tags User
 // @Param user body user.User true "Add user"
 // @Success 201 {object} user.AddUser
-// @Failure 400 {object} httputil.HTTPError
-// @Failure 409 {object} httputil.HTTPError
-// @Failure 500 {object} httputil.HTTPError
+// @Failure 400 {object} controller.ErrMsg
+// @Failure 409 {object} controller.ErrMsg
+// @Failure 500 {object} controller.ErrMsg
 // @Router /user [post]
 func (c *Controller) CreateUser(ctx *gin.Context) {
 	var addUser user.AddUser
-	if err := ctx.ShouldBindJSON(&addUser); err != nil {
-		httputil.NewError(ctx, http.StatusBadRequest, err)
+	if err := ctx.BindJSON(&addUser); err != nil {
 		return
 	}
 
 	stmt, err := c.Db.PrepareNamed("INSERT INTO accounts (name, created_on) VALUES (:name,now()) RETURNING id")
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Panicf("error creating database request: %q", err)
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not prepare user creation: %s", err))
+		return
 	}
 
 	var id int
 	if err := stmt.Get(&id, addUser); err != nil {
-		if err, ok := err.(*pq.Error); ok {
-			if err.Code.Name() == "unique_violation" {
-				httputil.NewError(ctx, http.StatusConflict, fmt.Errorf("user with username %s already exists", addUser.Name))
-				return
-			} else {
-				httputil.NewError(ctx, http.StatusInternalServerError, errors.New(err.Code.Name()))
-				return
-			}
-		}
-		log.Panic(err)
+		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not create user")
+		ctx.Abort()
+		return
 	}
 
 	var user user.User
-	c.GetElementById(ctx, id, "users", user)
+	if err := c.Db.Get(&user, "SELECT * FROM accounts WHERE id = $1", id); err != nil {
+		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not retrieve created user")
+		ctx.Abort()
+		return
+	}
+	ctx.JSON(http.StatusOK, user)
 }
 
 // GetUser godoc
@@ -84,15 +80,20 @@ func (c *Controller) CreateUser(ctx *gin.Context) {
 // @Tags User
 // @Param name path string true "user name"
 // @Success 200 {object} user.User
-// @Failure 400 {object} httputil.HTTPError
-// @Failure 404 {object} httputil.HTTPError
-// @Failure 500 {object} httputil.HTTPError
+// @Failure 400 {object} controller.ErrMsg
+// @Failure 404 {object} controller.ErrMsg
+// @Failure 500 {object} controller.ErrMsg
 // @Router /user/{name} [get]
 func (c *Controller) GetUser(ctx *gin.Context) {
 	name := ctx.Param("name")
 
 	var user user.User
-	c.GetUserByName(ctx, name, &user)
+	if err := c.Db.Get(&user, "SELECT * FROM accounts WHERE name = $1", name); err != nil {
+		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not get user")
+		ctx.Abort()
+		return
+	}
+	ctx.JSON(http.StatusOK, user)
 }
 
 // GetGeoPoint godoc
@@ -103,18 +104,23 @@ func (c *Controller) GetUser(ctx *gin.Context) {
 // @Tags Geopoint
 // @Param id path int true "geopoint id"
 // @Success 200 {object} geopoint.GeoPoint
-// @Failure 400 {object} httputil.HTTPError
-// @Failure 404 {object} httputil.HTTPError
-// @Failure 500 {object} httputil.HTTPError
+// @Failure 400 {object} controller.ErrMsg
+// @Failure 404 {object} controller.ErrMsg
+// @Failure 500 {object} controller.ErrMsg
 // @Router /geopoint/{id} [get]
 func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		httputil.NewError(ctx, http.StatusBadRequest, err)
+		ctx.AbortWithError(http.StatusBadRequest, err).SetType(gin.ErrorTypePublic)
+		return
 	}
 
 	var geopoint geopoint.GeoPoint
-	c.GetElementById(ctx, id, "geopoints", &geopoint)
+	if err := c.Db.Get(&geopoint, "SELECT * FROM geopoints WHERE id = $1", id); err != nil {
+		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not get geopoint")
+		ctx.Abort()
+		return
+	}
 }
 
 // CreateGeoPoint godoc
@@ -127,51 +133,50 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 // @Param sound formData file true "geopoint sound"
 // @Param picture formData file true "geopoint picture"
 // @Success 200 {object} geopoint.GeoPoint
-// @Failure 404 {object} httputil.HTTPError
-// @Failure 500 {object} httputil.HTTPError
+// @Failure 404 {object} controller.ErrMsg
+// @Failure 500 {object} controller.ErrMsg
 // @Router /geopoint [post]
 func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
 	var bindGeo geopoint.BindGeopoint
-	if err := ctx.ShouldBind(&bindGeo); err != nil {
-		httputil.NewError(ctx, http.StatusBadRequest, err)
+	if err := ctx.Bind(&bindGeo); err != nil {
 		return
 	}
 
 	if !httputil.CheckFileContentType(bindGeo.Sound, "audio/wave") {
-		httputil.NewError(ctx, http.StatusBadRequest, errors.New("sound was not wave file"))
+		ctx.AbortWithError(http.StatusBadRequest, errors.New("sound was not wave file")).SetType(gin.ErrorTypePublic)
 		return
 	}
 
 	if !httputil.CheckFileContentType(bindGeo.Picture, "image/jpeg") {
-		httputil.NewError(ctx, http.StatusBadRequest, errors.New("image was not jpeg file"))
+		ctx.AbortWithError(http.StatusBadRequest, errors.New("image was not jpeg file")).SetType(gin.ErrorTypePublic)
 		return
 	}
 
 	geoFile, err := bindGeo.Geopoint.Open()
 	if err != nil {
-		log.Panicln(err)
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not open geofile: %s", err))
 	}
 	defer geoFile.Close()
 
 	geoBytes, err := ioutil.ReadAll(geoFile)
 	if err != nil {
-		log.Panicln(err)
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not read geofile: %s", err))
 	}
 
 	var addGeoPoint geopoint.AddGeoPoint
 	if err := json.Unmarshal(geoBytes, &addGeoPoint); err != nil {
-		httputil.NewError(ctx, http.StatusBadRequest, errors.New("could not parse geopoint file"))
+		ctx.AbortWithError(http.StatusBadRequest, err).SetType(gin.ErrorTypePublic)
 		return
 	}
 
 	var userExists bool
 	if err := c.Db.Get(&userExists, "SELECT EXISTS(SELECT 1 FROM accounts WHERE id=$1)", addGeoPoint.UserId); err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Panicf("error reading geopoint: %q", err)
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not check if user exists: %s", err))
+		return
 	}
 
 	if !userExists {
-		httputil.NewError(ctx, http.StatusNotFound, errors.New("user was not found"))
+		ctx.AbortWithError(http.StatusNotFound, errors.New("user was not found")).SetType(gin.ErrorTypePublic)
 		return
 	}
 
@@ -190,29 +195,28 @@ func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
 
 	stmt, err := c.Db.PrepareNamed("INSERT INTO geopoints (title, user_id, location, amplitudes, picture, sound, created_on) VALUES (:title,:user_id,GeomFromEWKB(:location),:amplitudes,:picture,:sound,:created_on) RETURNING id")
 	if err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Panicf("error creating database request: %q", err)
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not prepare geopoint creation: %s", err))
+		return
 	}
 
 	if err := stmt.Get(&geoPoint.Id, geoPoint); err != nil {
-		ctx.Status(http.StatusInternalServerError)
-		log.Panicf("error creating geopoint: %q", err)
+		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not create geopoint")
+		ctx.Abort()
+		return
 	}
 
 	if err := ctx.SaveUploadedFile(bindGeo.Picture, fmt.Sprintf("./public/picture/%s", geoPoint.Picture)); err != nil {
-		httputil.NewError(ctx, http.StatusInternalServerError, errors.New("could not save picture file"))
-		log.Panicf("could not save picture file: %s", err)
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not save uploaded picture: %s", err))
+		return
 	}
 
 	if err := ctx.SaveUploadedFile(bindGeo.Sound, fmt.Sprintf("./public/sound/%s", geoPoint.Sound)); err != nil {
-		httputil.NewError(ctx, http.StatusInternalServerError, errors.New("could not save sound file"))
-		log.Panicf("could not save sound file: %s", err)
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not save uploaded sound: %s", err))
+		return
 	}
 
 	ctx.JSON(http.StatusOK, geoPoint)
 }
-
-// TODO replace httputil.NewError by ctx.Abort() ?
 
 // GetPicture godoc
 // @Summary get the url of the picture
@@ -222,9 +226,9 @@ func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
 // @Tags Geopoint
 // @Param id path int true "geopoint id"
 // @Success 200 {string} string
-// @Failure 400 {object} httputil.HTTPError
-// @Failure 404 {object} httputil.HTTPError
-// @Failure 500 {object} httputil.HTTPError
+// @Failure 400 {object} controller.ErrMsg
+// @Failure 404 {object} controller.ErrMsg
+// @Failure 500 {object} controller.ErrMsg
 // @Router /geopoint/{id}/picture [get]
 func (c *Controller) GetPicture(ctx *gin.Context) {
 	// TODO (not implemented)
@@ -238,7 +242,7 @@ func (c *Controller) GetPicture(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Success 200 {string} string
-// @Failure 500 {object} httputil.HTTPError
+// @Failure 500 {object} controller.ErrMsg
 // @Router /ping [get]
 func (c *Controller) Pong(ctx *gin.Context) {
 	ctx.JSON(200, gin.H{

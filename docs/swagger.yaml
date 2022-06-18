@@ -1,5 +1,11 @@
 basePath: /api/v1
 definitions:
+  controller.ErrMsg:
+    properties:
+      message:
+        example: malformed request
+        type: string
+    type: object
   geopoint.GeoPoint:
     properties:
       amplitudes:
@@ -35,15 +41,6 @@ definitions:
       userId:
         example: 1
         type: integer
-    type: object
-  httputil.HTTPError:
-    properties:
-      code:
-        example: 400
-        type: integer
-      message:
-        example: status bad request
-        type: string
     type: object
   postgis.Point:
     properties:
@@ -126,11 +123,11 @@ paths:
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/httputil.HTTPError'
+            $ref: '#/definitions/controller.ErrMsg'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/httputil.HTTPError'
+            $ref: '#/definitions/controller.ErrMsg'
       summary: create a geopoint
       tags:
       - Geopoint
@@ -155,15 +152,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/httputil.HTTPError'
+            $ref: '#/definitions/controller.ErrMsg'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/httputil.HTTPError'
+            $ref: '#/definitions/controller.ErrMsg'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/httputil.HTTPError'
+            $ref: '#/definitions/controller.ErrMsg'
       summary: get a geopoint
       tags:
       - Geopoint
@@ -189,15 +186,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/httputil.HTTPError'
+            $ref: '#/definitions/controller.ErrMsg'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/httputil.HTTPError'
+            $ref: '#/definitions/controller.ErrMsg'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/httputil.HTTPError'
+            $ref: '#/definitions/controller.ErrMsg'
       summary: get the url of the picture
       tags:
       - Geopoint
@@ -216,7 +213,7 @@ paths:
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/httputil.HTTPError'
+            $ref: '#/definitions/controller.ErrMsg'
       summary: pings the api
   /user:
     post:
@@ -240,15 +237,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/httputil.HTTPError'
+            $ref: '#/definitions/controller.ErrMsg'
         "409":
           description: Conflict
           schema:
-            $ref: '#/definitions/httputil.HTTPError'
+            $ref: '#/definitions/controller.ErrMsg'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/httputil.HTTPError'
+            $ref: '#/definitions/controller.ErrMsg'
       summary: create user
       tags:
       - User
@@ -273,15 +270,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/httputil.HTTPError'
+            $ref: '#/definitions/controller.ErrMsg'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/httputil.HTTPError'
+            $ref: '#/definitions/controller.ErrMsg'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/httputil.HTTPError'
+            $ref: '#/definitions/controller.ErrMsg'
       summary: get a user
       tags:
       - User
