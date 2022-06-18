@@ -69,6 +69,7 @@ func (c *Controller) CreateUser(ctx *gin.Context) {
 		ctx.Abort()
 		return
 	}
+
 	ctx.JSON(http.StatusOK, user)
 }
 
@@ -93,6 +94,7 @@ func (c *Controller) GetUser(ctx *gin.Context) {
 		ctx.Abort()
 		return
 	}
+
 	ctx.JSON(http.StatusOK, user)
 }
 
@@ -121,6 +123,8 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 		ctx.Abort()
 		return
 	}
+
+	ctx.JSON(http.StatusOK, geopoint)
 }
 
 // BindGeoPoint godoc
