@@ -35,7 +35,7 @@ func InitDb() (*sqlx.DB, error) {
 	tx := db.MustBegin()
 	tx.MustExec("INSERT INTO accounts (name, created_on) VALUES ($1,now()) ON CONFLICT DO NOTHING", "alice")
 	tx.MustExec("INSERT INTO accounts (name, created_on) VALUES ($1,now()) ON CONFLICT DO NOTHING", "bob")
-	tx.MustExec("INSERT INTO geopoints (title, user_id, location, created_on, amplitudes, picture, sound) VALUES ($1,$2,ST_GeomFromText($3),now(),$4,$5,$6) ON CONFLICT DO NOTHING", "Forest by night", "1", "Point(0.0 0.0)", "{1,2,3,4}", "https://example.com/image.jpg", "https://example.com/sound.mp3")
+	tx.MustExec("INSERT INTO geopoints (title, user_id, location, created_on, amplitudes, picture, sound) SELECT $1,$2,ST_GeomFromText($3),now(),$4,$5,$6 WHERE NOT EXISTS (SELECT 1 FROM geopoints)", "Forest by night", "1", "Point(0.0 0.0)", "{1,2,3,4}", "image.jpg", "sound.mp3")
 	tx.Commit()
 
 	return db, nil
