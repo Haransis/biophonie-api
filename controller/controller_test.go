@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -30,8 +29,9 @@ func TestMain(m *testing.M) {
 	c = NewController()
 	r = SetupRouter(c)
 
+	c.clearDatabase()
 	exitVal := m.Run()
-	//c.clearDatabase()
+	c.clearDatabase()
 
 	os.Exit(exitVal)
 }
@@ -45,44 +45,7 @@ func TestPingRoute(t *testing.T) {
 	assert.Equal(t, `{"message":"pong"}`, w.Body.String())
 }
 
-func TestGetUser(t *testing.T) {
-	c.clearDatabase()
-
-	tests := []struct {
-		User        *user.User
-		RequestName string
-		StatusCode  int
-	}{
-		{newUser(0, "alice", "2024-05-26T11:17:35.079344Z"), "eve", http.StatusNotFound},
-		{newUser(1, "charles", "2024-05-26T11:17:35.079344Z"), "Charles", http.StatusNotFound},
-		{newUser(2, "bob", "2022-05-26T11:17:35.079344Z"), "bob", http.StatusOK},
-		{newUser(3, "bobdu42", "2022-05-26T11:17:35.079344Z"), "bobdu42", http.StatusOK},
-	}
-
-	for _, test := range tests {
-		_, err := c.Db.NamedExec("INSERT INTO accounts (id, name, created_on) VALUES (:id, :name,:created_on) ON CONFLICT DO NOTHING", test.User)
-		if err != nil {
-			log.Fatal(err)
-		}
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/user/%s", test.RequestName), nil)
-
-		r.ServeHTTP(w, req)
-		assert.Equal(t, test.StatusCode, w.Code)
-
-		if test.StatusCode == http.StatusOK {
-			var got user.User
-			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
-				t.Error(err)
-			}
-			assert.Equal(t, *test.User, got)
-		}
-	}
-
-}
-
 func TestCreateUser(t *testing.T) {
-	c.clearDatabase()
 
 	tests := []struct {
 		AddUser    user.AddUser
@@ -96,7 +59,6 @@ func TestCreateUser(t *testing.T) {
 	}
 
 	for _, test := range tests {
-
 		w := httptest.NewRecorder()
 		userBytes, _ := json.Marshal(test.AddUser)
 		req, _ := http.NewRequest(http.MethodPost, "/api/v1/user", bytes.NewReader(userBytes))
@@ -111,13 +73,40 @@ func TestCreateUser(t *testing.T) {
 			assert.Equal(t, http.StatusOK, w.Code)
 		}
 	}
-
 }
 
-func newUser(id int, name string, date string) *user.User {
+func TestGetUser(t *testing.T) {
+
+	tests := []struct {
+		User        *user.User
+		RequestName string
+		StatusCode  int
+	}{
+		{newUser("alice"), "eve", http.StatusNotFound},
+		{newUser("charles"), "Charles", http.StatusNotFound},
+		{newUser("bob"), "bob", http.StatusOK},
+		{newUser("bobdu42"), "bobdu42", http.StatusOK},
+	}
+
+	for _, test := range tests {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/user/%s", test.RequestName), nil)
+
+		r.ServeHTTP(w, req)
+		assert.Equal(t, test.StatusCode, w.Code)
+
+		if test.StatusCode == http.StatusOK {
+			var got user.User
+			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+				t.Error(err)
+			}
+			assert.Equal(t, *test.User.Name, got.Name)
+		}
+	}
+}
+
+func newUser(name string) *user.User {
 	return &user.User{
-		Id:        &id,
-		Name:      &name,
-		CreatedOn: &date,
+		Name: &name,
 	}
 }
