@@ -20,10 +20,10 @@ type GeoPoint struct {
 }
 
 type AddGeoPoint struct {
-	Title      string    `json:"title" example:"Forêt à l'aube" binding:"required"`
+	Title      string    `json:"title" example:"Forêt à l'aube" binding:"required,min=3,max=30"`
 	UserId     int       `json:"userId" example:"1" binding:"required"`
 	Location   []float64 `json:"location" example:"38.652608,-120.357448" binding:"required"`
-	Date       time.Time `json:"date" example:"2022-05-26T11:17:35.079344Z" binding:"required"`
+	Date       time.Time `json:"date" example:"2022-05-26T11:17:35.079344Z" binding:"required,lt=(time.Time)"`
 	Amplitudes []int64   `json:"amplitudes" example:"0,1,2,3,45,3,2,1" binding:"required"`
 }
 

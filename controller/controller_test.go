@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -69,12 +70,45 @@ func TestGetUser(t *testing.T) {
 		r.ServeHTTP(w, req)
 		assert.Equal(t, test.StatusCode, w.Code)
 
-		if test.StatusCode != http.StatusNotFound {
+		if test.StatusCode == http.StatusOK {
 			var got user.User
 			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
 				t.Error(err)
 			}
 			assert.Equal(t, *test.User, got)
+		}
+	}
+
+}
+
+func TestCreateUser(t *testing.T) {
+	c.clearDatabase()
+
+	tests := []struct {
+		AddUser    user.AddUser
+		StatusCode int
+	}{
+		{user.AddUser{Name: "ev"}, http.StatusBadRequest},
+		{user.AddUser{Name: "alalalalalalalalalalalalalalalal"}, http.StatusBadRequest},
+		{user.AddUser{Name: "bob"}, http.StatusOK},
+		{user.AddUser{Name: "bob"}, http.StatusConflict},
+		{user.AddUser{Name: "bobdu42"}, http.StatusOK},
+	}
+
+	for _, test := range tests {
+
+		w := httptest.NewRecorder()
+		userBytes, _ := json.Marshal(test.AddUser)
+		req, _ := http.NewRequest(http.MethodPost, "/api/v1/user", bytes.NewReader(userBytes))
+
+		r.ServeHTTP(w, req)
+		assert.Equal(t, test.StatusCode, w.Code)
+
+		if test.StatusCode == http.StatusOK {
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/user/%s", test.AddUser.Name), nil)
+			r.ServeHTTP(w, req)
+			assert.Equal(t, http.StatusOK, w.Code)
 		}
 	}
 

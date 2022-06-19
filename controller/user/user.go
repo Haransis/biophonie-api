@@ -1,7 +1,7 @@
 package user
 
 type AddUser struct {
-	Name string `json:"name" example:"bob" binding:"required"`
+	Name string `json:"name" example:"bob" binding:"required,min=3,max=30"`
 }
 
 type User struct {

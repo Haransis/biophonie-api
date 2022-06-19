@@ -39,7 +39,7 @@ func NewController() *Controller {
 // @Produce json
 // @Tags User
 // @Param user body user.User true "Add user"
-// @Success 201 {object} user.AddUser
+// @Success 200 {object} user.AddUser
 // @Failure 400 {object} controller.ErrMsg
 // @Failure 409 {object} controller.ErrMsg
 // @Failure 500 {object} controller.ErrMsg
