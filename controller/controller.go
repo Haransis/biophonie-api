@@ -127,6 +127,11 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, geopoint)
 }
 
+// TODO add passwordless authentication
+// TODO add a enabled field
+// TODO add a get geopointS route
+// TODO add tests
+
 // BindGeoPoint godoc
 // @Summary create a geopoint
 // @Description create the geopoint in the database and save the sound and picture file (see testgeopoint dir)

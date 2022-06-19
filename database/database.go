@@ -25,6 +25,7 @@ const schema = `--sql
 	);`
 
 func InitDb() (*sqlx.DB, error) {
+	fmt.Println(os.Getenv("DATABASE_URL"))
 	db, err := sqlx.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		return db, fmt.Errorf("error opening database: %q", err)

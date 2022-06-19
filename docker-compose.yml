@@ -12,6 +12,15 @@ services:
       - db-network
     ports:
       - 5432:5432
+  db-test:
+    image: postgis/postgis
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: example
+    networks:
+      - db-network
+    ports:
+      - 6543:5432
 
 networks:
   db-network:
