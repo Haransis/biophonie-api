@@ -29,12 +29,19 @@ func (c *Controller) clearDatabase() {
 	tx.Commit()
 }
 
+func (c *Controller) preparePublicDir() {
+	os.RemoveAll("/tmp/public")
+	os.MkdirAll("/tmp/public/picture", os.ModePerm)
+	os.MkdirAll("/tmp/public/sound", os.ModePerm)
+}
+
 func TestMain(m *testing.M) {
 	gin.SetMode(gin.TestMode)
 	c = NewController()
 	r = SetupRouter(c)
 
 	c.clearDatabase()
+	c.preparePublicDir()
 	exitVal := m.Run()
 
 	os.Exit(exitVal)
