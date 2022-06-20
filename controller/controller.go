@@ -7,10 +7,12 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/cridenour/go-postgis"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/haran/biophonie-api/controller/geopoint"
 	"github.com/haran/biophonie-api/controller/user"
@@ -130,7 +132,6 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 // TODO add passwordless authentication
 // TODO add a enabled field
 // TODO add a get geopointS route
-// TODO add tests
 
 // BindGeoPoint godoc
 // @Summary create a geopoint
@@ -168,6 +169,11 @@ func (c *Controller) BindGeoPoint(ctx *gin.Context) {
 		return
 	}
 
+	if err := validator.New().Struct(addGeo); err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err).SetType(gin.ErrorTypeBind)
+		return
+	}
+
 	var userExists bool
 	if err := c.Db.Get(&userExists, "SELECT EXISTS(SELECT 1 FROM accounts WHERE id=$1)", addGeo.UserId); err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not check if user exists: %s", err))
@@ -183,8 +189,8 @@ func (c *Controller) BindGeoPoint(ctx *gin.Context) {
 		Title:  addGeo.Title,
 		UserId: addGeo.UserId,
 		Location: postgis.Point{
-			X: addGeo.Location[0],
-			Y: addGeo.Location[1],
+			X: addGeo.Latitude,
+			Y: addGeo.Longitude,
 		},
 		CreatedOn:  addGeo.Date,
 		Amplitudes: addGeo.Amplitudes,
@@ -226,12 +232,12 @@ func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
 		return
 	}
 
-	if err := ctx.SaveUploadedFile(bindGeo.Picture, fmt.Sprintf("./public/picture/%s", geoPoint.Picture)); err != nil {
+	if err := ctx.SaveUploadedFile(bindGeo.Picture, fmt.Sprintf("%s/picture/%s", os.Getenv("PUBLIC_PATH"), geoPoint.Picture)); err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not save uploaded picture: %s", err))
 		return
 	}
 
-	if err := ctx.SaveUploadedFile(bindGeo.Sound, fmt.Sprintf("./public/sound/%s", geoPoint.Sound)); err != nil {
+	if err := ctx.SaveUploadedFile(bindGeo.Sound, fmt.Sprintf("%s/sound/%s", os.Getenv("PUBLIC_PATH"), geoPoint.Sound)); err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not save uploaded sound: %s", err))
 		return
 	}

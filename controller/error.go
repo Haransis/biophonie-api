@@ -27,8 +27,11 @@ func (c *Controller) HandleErrors(ctx *gin.Context) {
 		case gin.ErrorTypePrivate:
 			ctx.JSON(-1, errMsg(InternalServerError))
 		case gin.ErrorTypeBind:
-			err := e.Err.(validator.ValidationErrors)[0]
-			ctx.JSON(-1, errMsg(ValidationErrorToText(err)))
+			if err, ok := e.Err.(*validator.ValidationErrors); ok {
+				ctx.JSON(-1, errMsg(ValidationErrorToText((*err)[0])))
+			} else {
+				ctx.JSON(-1, errMsg(fmt.Sprintf("malformed request: %s", e.Err)))
+			}
 		case gin.ErrorTypeAny:
 			if pqerr, ok := e.Err.(*pq.Error); ok {
 				switch pqerr.Code.Name() {
