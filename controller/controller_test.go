@@ -22,19 +22,6 @@ import (
 var c *Controller
 var r *gin.Engine
 
-func (c *Controller) clearDatabase() {
-	tx := c.Db.MustBegin()
-	tx.MustExec("TRUNCATE TABLE accounts RESTART IDENTITY")
-	tx.MustExec("TRUNCATE TABLE geopoints RESTART IDENTITY")
-	tx.Commit()
-}
-
-func (c *Controller) preparePublicDir() {
-	os.RemoveAll("/tmp/public")
-	os.MkdirAll("/tmp/public/picture", os.ModePerm)
-	os.MkdirAll("/tmp/public/sound", os.ModePerm)
-}
-
 func TestMain(m *testing.M) {
 	gin.SetMode(gin.TestMode)
 	c = NewController()
@@ -164,6 +151,45 @@ func TestCreateGeoPoint(t *testing.T) {
 			assert.Equal(t, http.StatusOK, w.Code)
 		}
 	}
+}
+
+func TestGetGeoPoint(t *testing.T) {
+	tests := []struct {
+		GeoPoint   geopoint.GeoPoint
+		StatusCode int
+	}{
+		{geopoint.GeoPoint{Id: 9999, Title: "Forest by night"}, http.StatusNotFound},
+		{geopoint.GeoPoint{Id: 1, Title: "Forest by night"}, http.StatusOK},
+	}
+
+	for _, test := range tests {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/geopoint/%d", test.GeoPoint.Id), nil)
+
+		r.ServeHTTP(w, req)
+		assert.Equal(t, test.StatusCode, w.Code)
+
+		if test.StatusCode == http.StatusOK {
+			var got geopoint.GeoPoint
+			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+				t.Error(err)
+			}
+			assert.Equal(t, test.GeoPoint.Title, got.Title)
+		}
+	}
+}
+
+func (c *Controller) clearDatabase() {
+	tx := c.Db.MustBegin()
+	tx.MustExec("TRUNCATE TABLE accounts RESTART IDENTITY")
+	tx.MustExec("TRUNCATE TABLE geopoints RESTART IDENTITY")
+	tx.Commit()
+}
+
+func (c *Controller) preparePublicDir() {
+	os.RemoveAll("/tmp/public")
+	os.MkdirAll("/tmp/public/picture", os.ModePerm)
+	os.MkdirAll("/tmp/public/sound", os.ModePerm)
 }
 
 func newUser(name string) *user.User {
