@@ -15,6 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/assert/v2"
+	"github.com/google/uuid"
 	"github.com/haran/biophonie-api/controller/geopoint"
 	"github.com/haran/biophonie-api/controller/user"
 )
@@ -63,12 +64,31 @@ func TestCreateUser(t *testing.T) {
 
 		r.ServeHTTP(w, req)
 		assert.Equal(t, test.StatusCode, w.Code)
+		if w.Code == http.StatusOK { // checks that token is not hashed
+			var got user.User
+			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+				t.Error(err)
+			}
+			assert.Equal(t, http.StatusOK, w.Code)
+			if _, err := uuid.Parse(got.Token); err != nil {
+				t.Error(err)
+			}
+		}
 
-		if test.StatusCode == http.StatusOK {
+		if test.StatusCode == http.StatusOK { // checks that user is stored properly
 			w := httptest.NewRecorder()
 			req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/user/%s", test.AddUser.Name), nil)
 			r.ServeHTTP(w, req)
+
+			var got user.User
+			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+				t.Error(err)
+			}
 			assert.Equal(t, http.StatusOK, w.Code)
+			assert.Equal(t, test.AddUser.Name, got.Name)
+			if _, err := uuid.Parse(got.Token); err == nil {
+				t.Fail()
+			}
 		}
 	}
 }
@@ -76,14 +96,14 @@ func TestCreateUser(t *testing.T) {
 func TestGetUser(t *testing.T) {
 
 	tests := []struct {
-		User        *user.User
+		User        user.User
 		RequestName string
 		StatusCode  int
 	}{
-		{newUser("alice"), "eve", http.StatusNotFound},
-		{newUser("charles"), "Charles", http.StatusNotFound},
-		{newUser("bob"), "bob", http.StatusOK},
-		{newUser("bobdu42"), "bobdu42", http.StatusOK},
+		{user.User{Name: "alice"}, "eve", http.StatusNotFound},
+		{user.User{Name: "charles"}, "Charles", http.StatusNotFound},
+		{user.User{Name: "bob"}, "bob", http.StatusOK},
+		{user.User{Name: "bobdu42"}, "bobdu42", http.StatusOK},
 	}
 
 	for _, test := range tests {
@@ -98,7 +118,7 @@ func TestGetUser(t *testing.T) {
 			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
 				t.Error(err)
 			}
-			assert.Equal(t, *test.User.Name, got.Name)
+			assert.Equal(t, test.User.Name, got.Name)
 		}
 	}
 }
@@ -190,12 +210,6 @@ func (c *Controller) preparePublicDir() {
 	os.RemoveAll("/tmp/public")
 	os.MkdirAll("/tmp/public/picture", os.ModePerm)
 	os.MkdirAll("/tmp/public/sound", os.ModePerm)
-}
-
-func newUser(name string) *user.User {
-	return &user.User{
-		Name: &name,
-	}
 }
 
 func newAmplitudes(length int) []int64 {

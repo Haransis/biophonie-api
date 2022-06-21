@@ -5,12 +5,17 @@ import (
 	"os"
 
 	"github.com/jmoiron/sqlx"
+	"golang.org/x/crypto/bcrypt"
 )
+
+var aliceToken, _ = bcrypt.GenerateFromPassword([]byte("57aba9df-969f-4871-a095-e916d06ba38b"), bcrypt.DefaultCost)
+var bobToken, _ = bcrypt.GenerateFromPassword([]byte("81aa683b-a96f-40bc-9721-514c513942e6"), bcrypt.DefaultCost)
 
 const schema = `--sql
 	CREATE TABLE IF NOT EXISTS accounts (
 		id serial PRIMARY KEY,
-		name VARCHAR ( 50 ) UNIQUE NOT NULL,
+		name VARCHAR ( 20 ) UNIQUE NOT NULL,
+		token VARCHAR ( 60 ) UNIQUE NOT NULL,
 		created_on TIMESTAMP NOT NULL
 	);
 	CREATE TABLE IF NOT EXISTS geopoints (
@@ -34,8 +39,8 @@ func InitDb() (*sqlx.DB, error) {
 	db.MustExec(schema)
 
 	tx := db.MustBegin()
-	tx.MustExec("INSERT INTO accounts (name, created_on) VALUES ($1,now()) ON CONFLICT DO NOTHING", "alice")
-	tx.MustExec("INSERT INTO accounts (name, created_on) VALUES ($1,now()) ON CONFLICT DO NOTHING", "bob")
+	tx.MustExec("INSERT INTO accounts (name, created_on, token) VALUES ($1,now(),$2) ON CONFLICT DO NOTHING", "alice", aliceToken)
+	tx.MustExec("INSERT INTO accounts (name, created_on, token) VALUES ($1,now(),$2) ON CONFLICT DO NOTHING", "bob", bobToken)
 	tx.MustExec("INSERT INTO geopoints (title, user_id, location, created_on, amplitudes, picture, sound) SELECT $1,$2,ST_GeomFromText($3),now(),$4,$5,$6 WHERE NOT EXISTS (SELECT 1 FROM geopoints)", "Forest by night", "1", "Point(0.0 0.0)", "{1,2,3,4}", "image.jpg", "sound.mp3")
 	tx.Commit()
 

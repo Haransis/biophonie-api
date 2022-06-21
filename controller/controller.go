@@ -19,6 +19,7 @@ import (
 	"github.com/haran/biophonie-api/database"
 	"github.com/haran/biophonie-api/httputil"
 	"github.com/jmoiron/sqlx"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Controller struct {
@@ -52,14 +53,22 @@ func (c *Controller) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	stmt, err := c.Db.PrepareNamed("INSERT INTO accounts (name, created_on) VALUES (:name,now()) RETURNING id")
+	// generate token and hash it
+	token := uuid.New().String()
+	hashedToken, err := bcrypt.GenerateFromPassword([]byte(token), bcrypt.DefaultCost)
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not hash token: %s", err))
+		return
+	}
+
+	stmt, err := c.Db.Preparex("INSERT INTO accounts (name, created_on, token) VALUES ($1,now(),$2) RETURNING id")
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not prepare user creation: %s", err))
 		return
 	}
 
 	var id int
-	if err := stmt.Get(&id, addUser); err != nil {
+	if err := stmt.Get(&id, addUser.Name, hashedToken); err != nil {
 		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not create user")
 		ctx.Abort()
 		return
@@ -71,6 +80,7 @@ func (c *Controller) CreateUser(ctx *gin.Context) {
 		ctx.Abort()
 		return
 	}
+	user.Token = token
 
 	ctx.JSON(http.StatusOK, user)
 }
@@ -129,7 +139,6 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, geopoint)
 }
 
-// TODO add passwordless authentication
 // TODO add a enabled field
 // TODO add a get geopointS route
 
