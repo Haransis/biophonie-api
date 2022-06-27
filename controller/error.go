@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var InternalServerError = "internal server error, please try again later"
@@ -44,9 +45,12 @@ func (c *Controller) HandleErrors(ctx *gin.Context) {
 					log.Println(e.Meta) //prints additional context element
 				}
 			} else {
-				if e.Err == sql.ErrNoRows {
+				switch e.Err {
+				case sql.ErrNoRows:
 					ctx.JSON(http.StatusNotFound, errMsg("element was not found"))
-				} else {
+				case bcrypt.ErrMismatchedHashAndPassword:
+					ctx.JSON(http.StatusUnauthorized, errMsg("wrong password"))
+				default:
 					ctx.JSON(http.StatusInternalServerError, errMsg(InternalServerError))
 					log.Println(e.Meta) //prints additional context element
 				}

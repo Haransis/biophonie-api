@@ -15,6 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/assert/v2"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/haran/biophonie-api/controller/geopoint"
 	"github.com/haran/biophonie-api/controller/user"
@@ -23,10 +24,15 @@ import (
 var c *Controller
 var r *gin.Engine
 
+var validUsers []user.User
+var validTokens []string
+
 func TestMain(m *testing.M) {
 	gin.SetMode(gin.TestMode)
 	c = NewController()
 	r = SetupRouter(c)
+	validUsers = make([]user.User, 0)
+	validTokens = make([]string, 0)
 
 	c.clearDatabase()
 	c.preparePublicDir()
@@ -59,8 +65,8 @@ func TestCreateUser(t *testing.T) {
 
 	for _, test := range tests {
 		w := httptest.NewRecorder()
-		userBytes, _ := json.Marshal(test.AddUser)
-		req, _ := http.NewRequest(http.MethodPost, "/api/v1/user", bytes.NewReader(userBytes))
+		body, _ := json.Marshal(test.AddUser)
+		req, _ := http.NewRequest(http.MethodPost, "/api/v1/user", bytes.NewReader(body))
 
 		r.ServeHTTP(w, req)
 		assert.Equal(t, test.StatusCode, w.Code)
@@ -70,9 +76,10 @@ func TestCreateUser(t *testing.T) {
 				t.Error(err)
 			}
 			assert.Equal(t, http.StatusOK, w.Code)
-			if _, err := uuid.Parse(got.Token); err != nil {
+			if _, err := uuid.Parse(got.Password); err != nil {
 				t.Error(err)
 			}
+			validUsers = append(validUsers, got)
 		}
 
 		if test.StatusCode == http.StatusOK { // checks that user is stored properly
@@ -86,7 +93,7 @@ func TestCreateUser(t *testing.T) {
 			}
 			assert.Equal(t, http.StatusOK, w.Code)
 			assert.Equal(t, test.AddUser.Name, got.Name)
-			if _, err := uuid.Parse(got.Token); err == nil {
+			if _, err := uuid.Parse(got.Password); err == nil {
 				t.Fail()
 			}
 		}
@@ -103,7 +110,6 @@ func TestGetUser(t *testing.T) {
 		{user.User{Name: "alice"}, "eve", http.StatusNotFound},
 		{user.User{Name: "charles"}, "Charles", http.StatusNotFound},
 		{user.User{Name: "bob"}, "bob", http.StatusOK},
-		{user.User{Name: "bobdu42"}, "bobdu42", http.StatusOK},
 	}
 
 	for _, test := range tests {
@@ -113,14 +119,71 @@ func TestGetUser(t *testing.T) {
 		r.ServeHTTP(w, req)
 		assert.Equal(t, test.StatusCode, w.Code)
 
-		if test.StatusCode == http.StatusOK {
+		if test.StatusCode == http.StatusOK { // Check if user was created properly
 			var got user.User
 			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
 				t.Error(err)
 			}
 			assert.Equal(t, test.User.Name, got.Name)
+			assert.Equal(t, got.Password, "")
 		}
 	}
+}
+
+func TestCreateToken(t *testing.T) {
+
+	tests := []struct {
+		AuthUser   user.AuthUser
+		StatusCode int
+	}{
+		{user.AuthUser{Name: validUsers[0].Name, Password: "random"}, http.StatusBadRequest},
+		{user.AuthUser{Name: validUsers[0].Name, Password: ""}, http.StatusBadRequest},
+		{user.AuthUser{Name: "charles", Password: "9b768967-d491-4baa-a812-24ea8a9c274d"}, http.StatusNotFound},
+		{user.AuthUser{Name: validUsers[0].Name, Password: validUsers[1].Password}, http.StatusUnauthorized},
+		{user.AuthUser{Name: validUsers[0].Name, Password: validUsers[0].Password}, http.StatusOK},
+		{user.AuthUser{Name: validUsers[1].Name, Password: validUsers[1].Password}, http.StatusOK},
+	}
+
+	for _, test := range tests {
+		w := httptest.NewRecorder()
+		body, _ := json.Marshal(test.AuthUser)
+		req, _ := http.NewRequest(http.MethodPost, "/api/v1/user/token", bytes.NewReader(body))
+
+		r.ServeHTTP(w, req)
+		assert.Equal(t, test.StatusCode, w.Code)
+
+		if w.Code == http.StatusOK {
+			token := w.Body.Bytes()
+			validTokens = append(validTokens, string(token))
+		}
+	}
+}
+
+func TestPingAuthenticated(t *testing.T) {
+	unvalidTokens := c.wrongToken()
+	tests := []struct {
+		JWT        string
+		StatusCode int
+	}{
+		{validTokens[0], http.StatusOK},
+		{validTokens[0], http.StatusOK},
+		{unvalidTokens[0], http.StatusNotFound},
+		{unvalidTokens[1], http.StatusUnauthorized},
+		{unvalidTokens[2], http.StatusUnauthorized},
+	}
+	for _, test := range tests {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/restricted/ping", nil)
+
+		if test.JWT != "" {
+			// Write authorization token in header
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", test.JWT))
+		}
+
+		r.ServeHTTP(w, req)
+		assert.Equal(t, test.StatusCode, w.Code)
+	}
+
 }
 
 func TestCreateGeoPoint(t *testing.T) {
@@ -128,17 +191,17 @@ func TestCreateGeoPoint(t *testing.T) {
 		SoundPath   string
 		PicturePath string
 		GeoPoint    geopoint.AddGeoPoint
+		JWT         string
 		StatusCode  int
 	}{
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", UserId: 1, Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, http.StatusOK},
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Fo", UserId: 1, Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, http.StatusBadRequest},
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night very late at night", UserId: 1, Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, http.StatusBadRequest},
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", UserId: 9999, Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, http.StatusNotFound},
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", UserId: 1, Latitude: 100000001.0, Longitude: 1000000000.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, http.StatusBadRequest},
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", UserId: 1, Latitude: 1.0, Longitude: 1.2, Date: time.Now().Add(200000 * time.Hour), Amplitudes: newAmplitudes(100)}, http.StatusBadRequest},
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", UserId: 1, Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, http.StatusBadRequest},
-		{"../testgeopoint/merle.wav", "../main.go", geopoint.AddGeoPoint{Title: "Forest by night", UserId: 1, Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, http.StatusBadRequest},
-		{"../main.go", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", UserId: 1, Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, http.StatusBadRequest},
+		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusOK},
+		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Fo", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
+		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night very late at night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
+		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 100000001.0, Longitude: 1000000000.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
+		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now().Add(200000 * time.Hour), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
+		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, validTokens[0], http.StatusBadRequest},
+		{"../testgeopoint/merle.wav", "../main.go", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, validTokens[0], http.StatusBadRequest},
+		{"../main.go", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, validTokens[0], http.StatusBadRequest},
 	}
 
 	for id, test := range tests {
@@ -156,15 +219,16 @@ func TestCreateGeoPoint(t *testing.T) {
 		}
 
 		w := httptest.NewRecorder()
-		req, err := buildFormData(values, "/api/v1/geopoint")
+		req, err := buildFormData(values, "/api/v1/restricted/geopoint")
 		if err != nil {
 			t.Error(err)
 		}
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", test.JWT))
 
 		r.ServeHTTP(w, req)
 		assert.Equal(t, test.StatusCode, w.Code)
 
-		if test.StatusCode == http.StatusOK {
+		if test.StatusCode == http.StatusOK { // Check if geopoint was created properly
 			w := httptest.NewRecorder()
 			req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/geopoint/%d", id+1), nil)
 			r.ServeHTTP(w, req)
@@ -257,4 +321,39 @@ func mustOpen(f string) *os.File {
 		panic(err)
 	}
 	return r
+}
+
+func (c *Controller) wrongToken() []string {
+	tokens := make([]string, 0)
+
+	t := jwt.New(jwt.GetSigningMethod("RS256"))
+
+	t.Claims = &CustomClaims{
+		&jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24 * 365)),
+		},
+		UserInfo{"random", true},
+	}
+
+	token, err := t.SignedString(c.signKey)
+	if err != nil {
+		panic(err)
+	}
+	tokens = append(tokens, token)
+
+	t.Claims = &CustomClaims{
+		&jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now()),
+		},
+		UserInfo{validUsers[0].Name, false},
+	}
+
+	token, err = t.SignedString(c.signKey)
+	if err != nil {
+		panic(err)
+	}
+
+	tokens = append(tokens, token)
+	tokens = append(tokens, "")
+	return tokens
 }

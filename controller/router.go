@@ -18,13 +18,18 @@ func SetupRouter(c *Controller) *gin.Engine {
 		{
 			users.GET("/:name", c.GetUser)
 			users.POST("", c.CreateUser)
+			users.POST("/token", c.CreateToken)
 		}
 		geopoints := v1.Group("/geopoint")
 		{
 			geopoints.GET("/:id", c.GetGeoPoint)
-			geopoints.POST("", c.BindGeoPoint, c.CheckGeoFiles, c.CreateGeoPoint)
 			geopoints.GET("/:id/picture", c.GetPicture)
 			geopoints.GET("/:id/sound", c.GetSound)
+		}
+		restricted := v1.Group("/restricted", c.Authorize)
+		{
+			restricted.POST("/geopoint", c.BindGeoPoint, c.CheckGeoFiles, c.CreateGeoPoint)
+			restricted.GET("/ping", c.AuthPong)
 		}
 	}
 

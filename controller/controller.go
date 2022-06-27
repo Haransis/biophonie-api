@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"crypto/rsa"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -23,16 +24,22 @@ import (
 )
 
 type Controller struct {
-	Db *sqlx.DB
+	Db        *sqlx.DB
+	verifyKey *rsa.PublicKey
+	signKey   *rsa.PrivateKey
 }
 
 func NewController() *Controller {
+	c := &Controller{}
+	c.readKeys()
+
 	db, err := database.InitDb()
 	if err != nil {
 		log.Fatalf("error initializing database: %q", err)
 	}
+	c.Db = db
 
-	return &Controller{Db: db}
+	return c
 }
 
 // CreateUser godoc
@@ -53,15 +60,15 @@ func (c *Controller) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	// generate token and hash it
-	token := uuid.New().String()
-	hashedToken, err := bcrypt.GenerateFromPassword([]byte(token), bcrypt.DefaultCost)
+	// generate password and hash it
+	password := uuid.New().String()
+	hashedToken, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not hash token: %s", err))
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not hash password: %s", err))
 		return
 	}
 
-	stmt, err := c.Db.Preparex("INSERT INTO accounts (name, created_on, token) VALUES ($1,now(),$2) RETURNING id")
+	stmt, err := c.Db.Preparex("INSERT INTO accounts (name, created_on, password) VALUES ($1,now(),$2) RETURNING id")
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not prepare user creation: %s", err))
 		return
@@ -80,7 +87,7 @@ func (c *Controller) CreateUser(ctx *gin.Context) {
 		ctx.Abort()
 		return
 	}
-	user.Token = token
+	user.Password = password
 
 	ctx.JSON(http.StatusOK, user)
 }
@@ -106,6 +113,7 @@ func (c *Controller) GetUser(ctx *gin.Context) {
 		ctx.Abort()
 		return
 	}
+	user.Password = ""
 
 	ctx.JSON(http.StatusOK, user)
 }
@@ -139,6 +147,47 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, geopoint)
 }
 
+// CreateToken godoc
+// @Summary create a token
+// @Description create a token
+// @Accept json
+// @Produce json
+// @Tags Authentication
+// @Param id path int true "geopoint id"
+// @Success 200 string
+// @Failure 400 {object} controller.ErrMsg
+// @Failure 401 {object} controller.ErrMsg
+// @Failure 500 {object} controller.ErrMsg
+// @Router /user/token [post]
+func (c *Controller) CreateToken(ctx *gin.Context) {
+	var user user.AuthUser
+	if err := ctx.BindJSON(&user); err != nil {
+		return
+	}
+
+	var dbPassword string
+	if err := c.Db.Get(&dbPassword, "SELECT password FROM accounts WHERE name = $1", user.Name); err != nil {
+		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not get password")
+		ctx.Abort()
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(dbPassword), []byte(user.Password)); err != nil {
+		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not compare password and hash")
+		ctx.Abort()
+		return
+	}
+
+	token, err := c.createToken(user.Name, false)
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not sign token: %s", err))
+		return
+	}
+
+	ctx.Header("Content-Type", "application/jwt")
+	ctx.String(http.StatusOK, token)
+}
+
 // TODO add a enabled field
 // TODO add a get geopointS route
 
@@ -154,7 +203,7 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 // @Success 200 {object} geopoint.GeoPoint
 // @Failure 404 {object} controller.ErrMsg
 // @Failure 500 {object} controller.ErrMsg
-// @Router /geopoint [post]
+// @Router /restricted/geopoint [post]
 func (c *Controller) BindGeoPoint(ctx *gin.Context) {
 	var bindGeo geopoint.BindGeoPoint
 	if err := ctx.Bind(&bindGeo); err != nil {
@@ -183,16 +232,7 @@ func (c *Controller) BindGeoPoint(ctx *gin.Context) {
 		return
 	}
 
-	var userExists bool
-	if err := c.Db.Get(&userExists, "SELECT EXISTS(SELECT 1 FROM accounts WHERE id=$1)", addGeo.UserId); err != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not check if user exists: %s", err))
-		return
-	}
-
-	if !userExists {
-		ctx.AbortWithError(http.StatusNotFound, errors.New("user was not found")).SetType(gin.ErrorTypePublic)
-		return
-	}
+	addGeo.UserId, _ = ctx.MustGet("userId").(int)
 
 	geoPoint := geopoint.GeoPoint{
 		Title:  addGeo.Title,
@@ -310,6 +350,20 @@ func (c *Controller) GetSound(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, sound)
+}
+
+// AuthPong godoc
+// @Summary pings the authenticated api
+// @Description used to check if client is authenticated
+// @Accept json
+// @Produce json
+// @Success 200 {string} string
+// @Failure 500 {object} controller.ErrMsg
+// @Router /restricted/ping [get]
+func (c *Controller) AuthPong(ctx *gin.Context) {
+	ctx.JSON(200, gin.H{
+		"message": "authenticated pong",
+	})
 }
 
 // Pong godoc
