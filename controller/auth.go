@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -30,6 +32,16 @@ func (c *Controller) Authorize(ctx *gin.Context) {
 	}
 
 	ctx.Set("userId", userId)
+	ctx.Set("admin", token.Claims.(*CustomClaims).Admin)
+}
+
+func (c *Controller) AuthorizeAdmin(ctx *gin.Context) {
+	fmt.Println("SHOULD BE CALLED")
+	admin := ctx.GetBool("admin")
+	if !admin {
+		ctx.AbortWithError(http.StatusUnauthorized, errors.New("restricted to admins")).SetType(gin.ErrorTypePublic)
+		return
+	}
 }
 
 // location of the files used for signing and verification

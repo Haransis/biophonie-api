@@ -19,6 +19,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/haran/biophonie-api/controller/geopoint"
 	"github.com/haran/biophonie-api/controller/user"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var c *Controller
@@ -29,6 +30,15 @@ const (
 	geoIdDisabled = 2
 )
 
+var adminUser user.User = user.User{
+	Id:        1,
+	Name:      "admin",
+	Password:  "57aba9df-969f-4871-a095-e916d06ba38b",
+	CreatedOn: time.Now().String(),
+}
+
+var adminPassword, _ = bcrypt.GenerateFromPassword([]byte(adminUser.Password), bcrypt.DefaultCost)
+
 var validUsers []user.User
 var validTokens []string
 
@@ -36,10 +46,11 @@ func TestMain(m *testing.M) {
 	gin.SetMode(gin.TestMode)
 	c = NewController()
 	r = SetupRouter(c)
+	c.clearDatabase()
 	validUsers = make([]user.User, 0)
+	validUsers = append(validUsers, adminUser)
 	validTokens = make([]string, 0)
 
-	c.clearDatabase()
 	c.preparePublicDir()
 	exitVal := m.Run()
 
@@ -63,8 +74,8 @@ func TestCreateUser(t *testing.T) {
 	}{
 		{user.AddUser{Name: "ev"}, http.StatusBadRequest},
 		{user.AddUser{Name: "alalalalalalalalalalalalalalalal"}, http.StatusBadRequest},
+		{user.AddUser{Name: "admin"}, http.StatusConflict},
 		{user.AddUser{Name: "bob"}, http.StatusOK},
-		{user.AddUser{Name: "bob"}, http.StatusConflict},
 		{user.AddUser{Name: "bobdu42"}, http.StatusOK},
 	}
 
@@ -147,6 +158,7 @@ func TestCreateToken(t *testing.T) {
 		{user.AuthUser{Name: validUsers[0].Name, Password: validUsers[1].Password}, http.StatusUnauthorized},
 		{user.AuthUser{Name: validUsers[0].Name, Password: validUsers[0].Password}, http.StatusOK},
 		{user.AuthUser{Name: validUsers[1].Name, Password: validUsers[1].Password}, http.StatusOK},
+		{user.AuthUser{Name: validUsers[2].Name, Password: validUsers[2].Password}, http.StatusOK},
 	}
 
 	for _, test := range tests {
@@ -243,8 +255,8 @@ func TestEnableGeoPoint(t *testing.T) {
 		StatusCode int
 	}{
 		{-1, validTokens[0], http.StatusBadRequest},
-		{geoIdEnabled, "faketoken", http.StatusUnauthorized},
 		{9999, validTokens[0], http.StatusNotFound},
+		{geoIdEnabled, validTokens[1], http.StatusUnauthorized},
 		{geoIdEnabled, validTokens[0], http.StatusOK},
 		{geoIdEnabled, validTokens[0], http.StatusOK},
 	}
@@ -289,10 +301,43 @@ func TestGetGeoPoint(t *testing.T) {
 	}
 }
 
+func TestGetRestrictedGeoPoint(t *testing.T) {
+	tests := []struct {
+		GeoPoint   geopoint.GeoPoint
+		JWT        string
+		StatusCode int
+	}{
+		{geopoint.GeoPoint{Id: 9999, Title: "Forest by night"}, validTokens[1], http.StatusUnauthorized},
+		{geopoint.GeoPoint{Id: geoIdDisabled, Title: "Forest by night"}, validTokens[1], http.StatusUnauthorized},
+		{geopoint.GeoPoint{Id: geoIdEnabled, Title: "Forest by night"}, validTokens[1], http.StatusUnauthorized},
+		{geopoint.GeoPoint{Id: 9999, Title: "Forest by night"}, validTokens[0], http.StatusNotFound},
+		{geopoint.GeoPoint{Id: geoIdDisabled, Title: "Forest by night"}, validTokens[0], http.StatusOK},
+		{geopoint.GeoPoint{Id: geoIdEnabled, Title: "Forest by night"}, validTokens[0], http.StatusOK},
+	}
+
+	for _, test := range tests {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/restricted/geopoint/%d", test.GeoPoint.Id), nil)
+
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", test.JWT))
+		r.ServeHTTP(w, req)
+		assert.Equal(t, test.StatusCode, w.Code)
+
+		if test.StatusCode == http.StatusOK {
+			var got geopoint.GeoPoint
+			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+				t.Error(err)
+			}
+			assert.Equal(t, test.GeoPoint.Title, got.Title)
+		}
+	}
+}
+
 func (c *Controller) clearDatabase() {
 	tx := c.Db.MustBegin()
 	tx.MustExec("TRUNCATE TABLE accounts RESTART IDENTITY")
 	tx.MustExec("TRUNCATE TABLE geopoints RESTART IDENTITY")
+	tx.MustExec("INSERT INTO accounts (name, created_on, password, admin) VALUES ($1,now(),$2,'t') ON CONFLICT DO NOTHING", "admin", adminPassword)
 	tx.Commit()
 }
 

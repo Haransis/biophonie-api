@@ -145,8 +145,8 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 		return
 	}
 
-	if !geopoint.Available {
-		ctx.AbortWithError(http.StatusForbidden, errors.New("geopoint is not enabled")).SetType(gin.ErrorTypePublic)
+	if !geopoint.Available && !ctx.GetBool("admin") {
+		ctx.AbortWithError(http.StatusForbidden, errors.New("geopoint is not enabled yet")).SetType(gin.ErrorTypePublic)
 		return
 	}
 
@@ -166,25 +166,25 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 // @Failure 500 {object} controller.ErrMsg
 // @Router /user/token [post]
 func (c *Controller) CreateToken(ctx *gin.Context) {
-	var user user.AuthUser
-	if err := ctx.BindJSON(&user); err != nil {
+	var authUser user.AuthUser
+	if err := ctx.BindJSON(&authUser); err != nil {
 		return
 	}
 
-	var dbPassword string
-	if err := c.Db.Get(&dbPassword, "SELECT password FROM accounts WHERE name = $1", user.Name); err != nil {
+	var user user.User
+	if err := c.Db.Get(&user, "SELECT * FROM accounts WHERE name = $1", authUser.Name); err != nil {
 		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not get password")
 		ctx.Abort()
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(dbPassword), []byte(user.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(authUser.Password)); err != nil {
 		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not compare password and hash")
 		ctx.Abort()
 		return
 	}
 
-	token, err := c.createToken(user.Name, false)
+	token, err := c.createToken(user.Name, user.Admin)
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not sign token: %s", err))
 		return
@@ -299,9 +299,9 @@ func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, geoPoint)
 }
 
-// GetPicture godoc
-// @Summary get the picture filename
-// @Description located in assets/
+// EnableGeoPoint godoc
+// @Summary make the geopoint available
+// @Description make the geopoint available
 // @Accept json
 // @Produce json
 // @Tags Geopoint

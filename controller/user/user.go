@@ -14,4 +14,5 @@ type User struct {
 	Name      string `db:"name" json:"name" example:"bob" binding:"required"`
 	Password  string `db:"password" json:"password" example:"9b768967-d491-4baa-a812-24ea8a9c274d"`
 	CreatedOn string `db:"created_on" json:"createdOn" example:"2022-05-26T11:17:35.079344Z"`
+	Admin     bool   `db:"admin" json:"admin" example:"false"`
 }

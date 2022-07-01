@@ -31,7 +31,11 @@ func SetupRouter(c *Controller) *gin.Engine {
 			geopoints := restricted.Group("/geopoint")
 			{
 				geopoints.POST("", c.BindGeoPoint, c.CheckGeoFiles, c.CreateGeoPoint)
-				geopoints.PATCH("/:id/enable", c.EnableGeoPoint)
+				toAdmins := geopoints.Group("", c.AuthorizeAdmin)
+				{
+					toAdmins.PATCH("/:id/enable", c.EnableGeoPoint)
+					toAdmins.GET("/:id", c.GetGeoPoint)
+				}
 			}
 			restricted.GET("/ping", c.AuthPong)
 		}
