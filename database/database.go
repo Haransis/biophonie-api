@@ -26,7 +26,8 @@ const schema = `--sql
 		created_on TIMESTAMP NOT NULL,
 		amplitudes INT [],
 		picture VARCHAR ( 42 ) NOT NULL,
-		sound VARCHAR ( 42 ) NOT NULL
+		sound VARCHAR ( 42 ) NOT NULL,
+		available BOOLEAN NOT NULL DEFAULT FALSE
 	);`
 
 func InitDb() (*sqlx.DB, error) {

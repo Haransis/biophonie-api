@@ -127,11 +127,12 @@ func (c *Controller) GetUser(ctx *gin.Context) {
 // @Param id path int true "geopoint id"
 // @Success 200 {object} geopoint.GeoPoint
 // @Failure 400 {object} controller.ErrMsg
+// @Failure 403 {object} controller.ErrMsg
 // @Failure 404 {object} controller.ErrMsg
 // @Failure 500 {object} controller.ErrMsg
 // @Router /geopoint/{id} [get]
 func (c *Controller) GetGeoPoint(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
+	id, err := strconv.ParseUint(ctx.Param("id"), 10, 0)
 	if err != nil {
 		ctx.AbortWithError(http.StatusBadRequest, err).SetType(gin.ErrorTypePublic)
 		return
@@ -141,6 +142,11 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 	if err := c.Db.Get(&geopoint, "SELECT * FROM geopoints WHERE id = $1", id); err != nil {
 		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not get geopoint")
 		ctx.Abort()
+		return
+	}
+
+	if !geopoint.Available {
+		ctx.AbortWithError(http.StatusForbidden, errors.New("geopoint is not enabled")).SetType(gin.ErrorTypePublic)
 		return
 	}
 
@@ -188,7 +194,6 @@ func (c *Controller) CreateToken(ctx *gin.Context) {
 	ctx.String(http.StatusOK, token)
 }
 
-// TODO add a enabled field
 // TODO add a get geopointS route
 
 // BindGeoPoint godoc
@@ -292,6 +297,44 @@ func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, geoPoint)
+}
+
+// GetPicture godoc
+// @Summary get the picture filename
+// @Description located in assets/
+// @Accept json
+// @Produce json
+// @Tags Geopoint
+// @Param id path int true "geopoint id"
+// @Success 200 {string} string
+// @Failure 400 {object} controller.ErrMsg
+// @Failure 404 {object} controller.ErrMsg
+// @Failure 500 {object} controller.ErrMsg
+// @Router /restricted/geopoint/{id}/enable [patch]
+func (c *Controller) EnableGeoPoint(ctx *gin.Context) {
+	id, err := strconv.ParseUint(ctx.Param("id"), 10, 0)
+	if err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err).SetType(gin.ErrorTypePublic)
+		return
+	}
+
+	result, err := c.Db.Exec("UPDATE geopoints SET available = TRUE WHERE id = $1", id)
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	if rowsAffected != 1 {
+		ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("not found"))
+		return
+	}
+
+	ctx.String(http.StatusOK, "geopoint was enabled")
 }
 
 // GetPicture godoc

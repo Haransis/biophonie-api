@@ -24,6 +24,11 @@ import (
 var c *Controller
 var r *gin.Engine
 
+const (
+	geoIdEnabled  = 1
+	geoIdDisabled = 2
+)
+
 var validUsers []user.User
 var validTokens []string
 
@@ -195,6 +200,7 @@ func TestCreateGeoPoint(t *testing.T) {
 		StatusCode  int
 	}{
 		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusOK},
+		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusOK},
 		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Fo", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
 		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night very late at night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
 		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 100000001.0, Longitude: 1000000000.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
@@ -204,7 +210,7 @@ func TestCreateGeoPoint(t *testing.T) {
 		{"../main.go", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, validTokens[0], http.StatusBadRequest},
 	}
 
-	for id, test := range tests {
+	for _, test := range tests {
 		userBytes, _ := json.Marshal(test.GeoPoint)
 		jsonFile, err := os.CreateTemp("", "*.json")
 		if err != nil {
@@ -227,13 +233,32 @@ func TestCreateGeoPoint(t *testing.T) {
 
 		r.ServeHTTP(w, req)
 		assert.Equal(t, test.StatusCode, w.Code)
+	}
+}
 
-		if test.StatusCode == http.StatusOK { // Check if geopoint was created properly
-			w := httptest.NewRecorder()
-			req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/geopoint/%d", id+1), nil)
-			r.ServeHTTP(w, req)
-			assert.Equal(t, http.StatusOK, w.Code)
+func TestEnableGeoPoint(t *testing.T) {
+	tests := []struct {
+		GeoId      int
+		JWT        string
+		StatusCode int
+	}{
+		{-1, validTokens[0], http.StatusBadRequest},
+		{geoIdEnabled, "faketoken", http.StatusUnauthorized},
+		{9999, validTokens[0], http.StatusNotFound},
+		{geoIdEnabled, validTokens[0], http.StatusOK},
+		{geoIdEnabled, validTokens[0], http.StatusOK},
+	}
+	for _, test := range tests {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/restricted/geopoint/%d/enable", test.GeoId), nil)
+
+		if test.JWT != "" {
+			// Write authorization token in header
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", test.JWT))
 		}
+
+		r.ServeHTTP(w, req)
+		assert.Equal(t, test.StatusCode, w.Code)
 	}
 }
 
@@ -243,7 +268,8 @@ func TestGetGeoPoint(t *testing.T) {
 		StatusCode int
 	}{
 		{geopoint.GeoPoint{Id: 9999, Title: "Forest by night"}, http.StatusNotFound},
-		{geopoint.GeoPoint{Id: 1, Title: "Forest by night"}, http.StatusOK},
+		{geopoint.GeoPoint{Id: geoIdDisabled, Title: "Forest by night"}, http.StatusForbidden},
+		{geopoint.GeoPoint{Id: geoIdEnabled, Title: "Forest by night"}, http.StatusOK},
 	}
 
 	for _, test := range tests {
