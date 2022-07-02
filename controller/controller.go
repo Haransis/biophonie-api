@@ -194,6 +194,45 @@ func (c *Controller) CreateToken(ctx *gin.Context) {
 	ctx.String(http.StatusOK, token)
 }
 
+// MakeAdmin godoc
+// @Summary make a user admin
+// @Description make a user admin
+// @Accept json
+// @Produce json
+// @Tags Authentication
+// @Param id path int true "user id"
+// @Success 200 string
+// @Failure 400 {object} controller.ErrMsg
+// @Failure 403 {object} controller.ErrMsg
+// @Failure 404 {object} controller.ErrMsg
+// @Failure 500 {object} controller.ErrMsg
+// @Router /restricted/user/{id} [patch]
+func (c *Controller) MakeAdmin(ctx *gin.Context) {
+	id, err := strconv.ParseUint(ctx.Param("id"), 10, 0)
+	if err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err).SetType(gin.ErrorTypePublic)
+		return
+	}
+
+	result, err := c.Db.Exec("UPDATE accounts SET admin = TRUE WHERE id = $1", id)
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	if rowsAffected != 1 {
+		ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("not found"))
+		return
+	}
+
+	ctx.String(http.StatusOK, "user %d is now admin", id)
+}
+
 // TODO add a get geopointS route
 
 // BindGeoPoint godoc

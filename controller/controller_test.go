@@ -333,6 +333,38 @@ func TestGetRestrictedGeoPoint(t *testing.T) {
 	}
 }
 
+func TestMakeAdmin(t *testing.T) {
+	tests := []struct {
+		Id         int
+		JWT        string
+		StatusCode int
+	}{
+		{validUsers[1].Id, validTokens[1], http.StatusUnauthorized},
+		{99999, validTokens[0], http.StatusNotFound},
+		{validUsers[1].Id, validTokens[0], http.StatusOK},
+	}
+
+	for _, test := range tests {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/restricted/user/%d", test.Id), nil)
+
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", test.JWT))
+		r.ServeHTTP(w, req)
+		assert.Equal(t, test.StatusCode, w.Code)
+
+		if test.StatusCode == http.StatusOK {
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(http.MethodGet, "/api/v1/user/"+validUsers[1].Name, nil)
+			r.ServeHTTP(w, req)
+			var got user.User
+			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+				t.Error(err)
+			}
+			assert.Equal(t, true, got.Admin)
+		}
+	}
+}
+
 func (c *Controller) clearDatabase() {
 	tx := c.Db.MustBegin()
 	tx.MustExec("TRUNCATE TABLE accounts RESTART IDENTITY")
