@@ -25,64 +25,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/geopoint": {
-            "post": {
-                "description": "create the geopoint in the database and save the sound and picture file (see testgeopoint dir)",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Geopoint"
-                ],
-                "summary": "create a geopoint",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "geopoint infos in a utf-8 json file",
-                        "name": "geopoint",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "file",
-                        "description": "geopoint sound",
-                        "name": "sound",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "file",
-                        "description": "geopoint picture",
-                        "name": "picture",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/geopoint.GeoPoint"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/controller.ErrMsg"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/controller.ErrMsg"
-                        }
-                    }
-                }
-            }
-        },
         "/geopoint/{id}": {
             "get": {
                 "description": "retrieve the geopoint in the database using its name",
@@ -114,6 +56,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/controller.ErrMsg"
                         }
@@ -259,6 +207,232 @@ const docTemplate = `{
                 }
             }
         },
+        "/restricted/geopoint": {
+            "post": {
+                "description": "create the geopoint in the database and save the sound and picture file (see testgeopoint dir)",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Geopoint"
+                ],
+                "summary": "create a geopoint",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "geopoint infos in a utf-8 json file",
+                        "name": "geopoint",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "geopoint sound",
+                        "name": "sound",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "geopoint picture",
+                        "name": "picture",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Authentication header",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/geopoint.GeoPoint"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    }
+                }
+            }
+        },
+        "/restricted/geopoint/{id}/enable": {
+            "patch": {
+                "description": "make the geopoint available",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Geopoint"
+                ],
+                "summary": "make the geopoint available",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "geopoint id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Authentication header",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    }
+                }
+            }
+        },
+        "/restricted/ping": {
+            "get": {
+                "description": "used to check if client is authenticated",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "pings the authenticated api",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authentication header",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    }
+                }
+            }
+        },
+        "/restricted/user/{id}": {
+            "patch": {
+                "description": "make a user admin",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "make a user admin",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "user id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Authentication header",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "user is now admin",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    }
+                }
+            }
+        },
         "/user": {
             "post": {
                 "description": "create a user in the database",
@@ -279,15 +453,15 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/user.User"
+                            "$ref": "#/definitions/user.AddUser"
                         }
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "200": {
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/user.AddUser"
+                            "$ref": "#/definitions/user.User"
                         }
                     },
                     "400": {
@@ -298,6 +472,58 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/token": {
+            "post": {
+                "description": "create a token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "create a token",
+                "parameters": [
+                    {
+                        "description": "authentication user",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.AuthUser"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "token to use for authentication",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/controller.ErrMsg"
                         }
@@ -391,6 +617,10 @@ const docTemplate = `{
                         1
                     ]
                 },
+                "available": {
+                    "type": "boolean",
+                    "example": true
+                },
                 "createdOn": {
                     "type": "string",
                     "example": "2022-05-26T11:17:35.079344Z"
@@ -439,7 +669,28 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string",
+                    "maxLength": 20,
+                    "minLength": 3,
                     "example": "bob"
+                }
+            }
+        },
+        "user.AuthUser": {
+            "type": "object",
+            "required": [
+                "name",
+                "password"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "minLength": 3,
+                    "example": "bob"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "9b768967-d491-4baa-a812-24ea8a9c274d"
                 }
             }
         },
@@ -449,11 +700,11 @@ const docTemplate = `{
                 "name"
             ],
             "properties": {
-                "createdOn": {
-                    "type": "string",
-                    "example": "2022-05-26T11:17:35.079344Z"
+                "admin": {
+                    "type": "boolean",
+                    "example": false
                 },
-                "lastLogin": {
+                "createdOn": {
                     "type": "string",
                     "example": "2022-05-26T11:17:35.079344Z"
                 },
@@ -461,12 +712,13 @@ const docTemplate = `{
                     "type": "string",
                     "example": "bob"
                 },
-                "token": {
+                "password": {
                     "type": "string",
-                    "example": "auinrsetanruistnstnaustie"
+                    "example": "9b768967-d491-4baa-a812-24ea8a9c274d"
                 },
                 "userId": {
                     "type": "integer",
+                    "minimum": 0,
                     "example": 123
                 }
             }

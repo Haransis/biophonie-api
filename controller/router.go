@@ -36,12 +36,11 @@ func SetupRouter(c *Controller) *gin.Engine {
 				toAdmins.PATCH("/user/:id", c.MakeAdmin)
 				toAdmins.GET("/geopoint/:id", c.GetGeoPoint)
 			}
-
 		}
+		v1.GET("/ping", c.Pong)
 	}
 
 	// r.UseH2C = true // try to use http2 maybe with next version of gin-gonic
-	r.GET("/ping", c.Pong)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	return r
 }

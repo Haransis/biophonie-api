@@ -20,6 +20,7 @@ import (
 // @license.url   https://www.gnu.org/licenses/gpl-3.0.en.html
 
 // @BasePath /api/v1
+// @tokenUrl http://localhost:8080/api/v1/user/token
 
 func main() {
 	c := controller.NewController()

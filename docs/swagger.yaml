@@ -21,6 +21,9 @@ definitions:
         items:
           type: number
         type: array
+      available:
+        example: true
+        type: boolean
       createdOn:
         example: "2022-05-26T11:17:35.079344Z"
         type: string
@@ -53,26 +56,43 @@ definitions:
     properties:
       name:
         example: bob
+        maxLength: 20
+        minLength: 3
         type: string
     required:
     - name
     type: object
+  user.AuthUser:
+    properties:
+      name:
+        example: bob
+        maxLength: 20
+        minLength: 3
+        type: string
+      password:
+        example: 9b768967-d491-4baa-a812-24ea8a9c274d
+        type: string
+    required:
+    - name
+    - password
+    type: object
   user.User:
     properties:
+      admin:
+        example: false
+        type: boolean
       createdOn:
-        example: "2022-05-26T11:17:35.079344Z"
-        type: string
-      lastLogin:
         example: "2022-05-26T11:17:35.079344Z"
         type: string
       name:
         example: bob
         type: string
-      token:
-        example: auinrsetanruistnstnaustie
+      password:
+        example: 9b768967-d491-4baa-a812-24ea8a9c274d
         type: string
       userId:
         example: 123
+        minimum: 0
         type: integer
     required:
     - name
@@ -91,46 +111,6 @@ info:
   title: Swagger for biophonie-api
   version: "1.0"
 paths:
-  /geopoint:
-    post:
-      consumes:
-      - multipart/form-data
-      description: create the geopoint in the database and save the sound and picture
-        file (see testgeopoint dir)
-      parameters:
-      - description: geopoint infos in a utf-8 json file
-        in: formData
-        name: geopoint
-        required: true
-        type: file
-      - description: geopoint sound
-        in: formData
-        name: sound
-        required: true
-        type: file
-      - description: geopoint picture
-        in: formData
-        name: picture
-        required: true
-        type: file
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/geopoint.GeoPoint'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/controller.ErrMsg'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/controller.ErrMsg'
-      summary: create a geopoint
-      tags:
-      - Geopoint
   /geopoint/{id}:
     get:
       consumes:
@@ -151,6 +131,10 @@ paths:
             $ref: '#/definitions/geopoint.GeoPoint'
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+        "403":
+          description: Forbidden
           schema:
             $ref: '#/definitions/controller.ErrMsg'
         "404":
@@ -247,6 +231,158 @@ paths:
           schema:
             $ref: '#/definitions/controller.ErrMsg'
       summary: pings the api
+  /restricted/geopoint:
+    post:
+      consumes:
+      - multipart/form-data
+      description: create the geopoint in the database and save the sound and picture
+        file (see testgeopoint dir)
+      parameters:
+      - description: geopoint infos in a utf-8 json file
+        in: formData
+        name: geopoint
+        required: true
+        type: file
+      - description: geopoint sound
+        in: formData
+        name: sound
+        required: true
+        type: file
+      - description: geopoint picture
+        in: formData
+        name: picture
+        required: true
+        type: file
+      - description: Authentication header
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/geopoint.GeoPoint'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+      summary: create a geopoint
+      tags:
+      - Geopoint
+  /restricted/geopoint/{id}/enable:
+    patch:
+      consumes:
+      - application/json
+      description: make the geopoint available
+      parameters:
+      - description: geopoint id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Authentication header
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+      summary: make the geopoint available
+      tags:
+      - Geopoint
+  /restricted/ping:
+    get:
+      consumes:
+      - application/json
+      description: used to check if client is authenticated
+      parameters:
+      - description: Authentication header
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+      summary: pings the authenticated api
+  /restricted/user/{id}:
+    patch:
+      consumes:
+      - application/json
+      description: make a user admin
+      parameters:
+      - description: user id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Authentication header
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: user is now admin
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+      summary: make a user admin
+      tags:
+      - Authentication
   /user:
     post:
       consumes:
@@ -258,14 +394,14 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/user.User'
+          $ref: '#/definitions/user.AddUser'
       produces:
       - application/json
       responses:
-        "201":
-          description: Created
+        "200":
+          description: OK
           schema:
-            $ref: '#/definitions/user.AddUser'
+            $ref: '#/definitions/user.User'
         "400":
           description: Bad Request
           schema:
@@ -314,4 +450,38 @@ paths:
       summary: get a user
       tags:
       - User
+  /user/token:
+    post:
+      consumes:
+      - application/json
+      description: create a token
+      parameters:
+      - description: authentication user
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/user.AuthUser'
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: token to use for authentication
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+      summary: create a token
+      tags:
+      - Authentication
 swagger: "2.0"

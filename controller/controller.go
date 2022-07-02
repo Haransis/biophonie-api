@@ -48,8 +48,8 @@ func NewController() *Controller {
 // @Accept json
 // @Produce json
 // @Tags User
-// @Param user body user.User true "Add user"
-// @Success 200 {object} user.AddUser
+// @Param user body user.AddUser true "Add user"
+// @Success 200 {object} user.User
 // @Failure 400 {object} controller.ErrMsg
 // @Failure 409 {object} controller.ErrMsg
 // @Failure 500 {object} controller.ErrMsg
@@ -157,10 +157,10 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 // @Summary create a token
 // @Description create a token
 // @Accept json
-// @Produce json
+// @Produce plain
 // @Tags Authentication
-// @Param id path int true "geopoint id"
-// @Success 200 string
+// @Param user body user.AuthUser true "authentication user"
+// @Success 200 {string} string "token to use for authentication"
 // @Failure 400 {object} controller.ErrMsg
 // @Failure 401 {object} controller.ErrMsg
 // @Failure 500 {object} controller.ErrMsg
@@ -198,10 +198,11 @@ func (c *Controller) CreateToken(ctx *gin.Context) {
 // @Summary make a user admin
 // @Description make a user admin
 // @Accept json
-// @Produce json
+// @Produce plain
 // @Tags Authentication
 // @Param id path int true "user id"
-// @Success 200 string
+// @Success 200 {string} string "user is now admin"
+// @Param Authorization header string true "Authentication header"
 // @Failure 400 {object} controller.ErrMsg
 // @Failure 403 {object} controller.ErrMsg
 // @Failure 404 {object} controller.ErrMsg
@@ -226,11 +227,11 @@ func (c *Controller) MakeAdmin(ctx *gin.Context) {
 		return
 	}
 	if rowsAffected != 1 {
-		ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("not found"))
+		ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("not found")).SetType(gin.ErrorTypePublic)
 		return
 	}
 
-	ctx.String(http.StatusOK, "user %d is now admin", id)
+	ctx.JSON(http.StatusOK, gin.H{"message": "user is now admin"})
 }
 
 // TODO add a get geopointS route
@@ -244,6 +245,7 @@ func (c *Controller) MakeAdmin(ctx *gin.Context) {
 // @Param geopoint formData file true "geopoint infos in a utf-8 json file"
 // @Param sound formData file true "geopoint sound"
 // @Param picture formData file true "geopoint picture"
+// @Param Authorization header string true "Authentication header"
 // @Success 200 {object} geopoint.GeoPoint
 // @Failure 404 {object} controller.ErrMsg
 // @Failure 500 {object} controller.ErrMsg
@@ -342,9 +344,10 @@ func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
 // @Summary make the geopoint available
 // @Description make the geopoint available
 // @Accept json
-// @Produce json
+// @Produce plain
 // @Tags Geopoint
 // @Param id path int true "geopoint id"
+// @Param Authorization header string true "Authentication header"
 // @Success 200 {string} string
 // @Failure 400 {object} controller.ErrMsg
 // @Failure 404 {object} controller.ErrMsg
@@ -373,7 +376,7 @@ func (c *Controller) EnableGeoPoint(ctx *gin.Context) {
 		return
 	}
 
-	ctx.String(http.StatusOK, "geopoint was enabled")
+	ctx.JSON(http.StatusOK, gin.H{"message": "geopoint was enabled"})
 }
 
 // GetPicture godoc
@@ -439,7 +442,9 @@ func (c *Controller) GetSound(ctx *gin.Context) {
 // @Description used to check if client is authenticated
 // @Accept json
 // @Produce json
+// @Param Authorization header string true "Authentication header"
 // @Success 200 {string} string
+// @Failure 403 {object} controller.ErrMsg
 // @Failure 500 {object} controller.ErrMsg
 // @Router /restricted/ping [get]
 func (c *Controller) AuthPong(ctx *gin.Context) {
