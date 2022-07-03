@@ -32,6 +32,7 @@ func (c *Controller) Authorize(ctx *gin.Context) {
 
 	ctx.Set("userId", userId)
 	ctx.Set("admin", token.Claims.(*CustomClaims).Admin)
+	ctx.Next()
 }
 
 func (c *Controller) AuthorizeAdmin(ctx *gin.Context) {
@@ -40,6 +41,7 @@ func (c *Controller) AuthorizeAdmin(ctx *gin.Context) {
 		ctx.AbortWithError(http.StatusUnauthorized, errors.New("restricted to admins")).SetType(gin.ErrorTypePublic)
 		return
 	}
+	ctx.Next()
 }
 
 // location of the files used for signing and verification

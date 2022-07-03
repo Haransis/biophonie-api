@@ -59,7 +59,7 @@ func TestMain(m *testing.M) {
 
 func TestPingRoute(t *testing.T) {
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest(http.MethodGet, "/ping", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/ping", nil)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
