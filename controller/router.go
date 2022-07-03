@@ -9,6 +9,7 @@ import (
 func SetupRouter(c *Controller) *gin.Engine {
 	r := gin.Default()
 	r.Use(c.HandleErrors)
+	r.Use(gin.Recovery())
 	r.SetTrustedProxies(nil)
 	r.MaxMultipartMemory = 10000000 // 10 MB
 	v1 := r.Group("/api/v1")
