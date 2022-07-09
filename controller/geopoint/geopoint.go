@@ -34,3 +34,31 @@ type BindGeoPoint struct {
 	Sound    *multipart.FileHeader `form:"sound" binding:"required"`
 	Picture  *multipart.FileHeader `form:"picture" binding:"required"`
 }
+
+func ToGeoJson(gs []GeoPoint) *GeoJson {
+	if len(gs) == 0 {
+		return &GeoJson{
+			Type:     "FeatureCollection",
+			Features: make([]Feature, 0),
+		}
+	}
+	feats := make([]Feature, 0)
+	for _, geopoint := range gs {
+		feats = append(feats, geopoint.ToFeature())
+	}
+	return &GeoJson{
+		Type:     "FeatureCollection",
+		Features: feats,
+	}
+}
+
+func (g *GeoPoint) ToFeature() Feature {
+	return Feature{
+		Type:        "Point",
+		Coordinates: []float64{g.Location.X, g.Location.Y},
+		Properties: Properties{
+			Name: g.Title,
+			Id:   g.Id,
+		},
+	}
+}

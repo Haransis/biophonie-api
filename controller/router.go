@@ -14,7 +14,7 @@ func SetupRouter(c *Controller) *gin.Engine {
 	r.MaxMultipartMemory = 10000000 // 10 MB
 	v1 := r.Group("/api/v1")
 	{
-		v1.Static("/assets", "./public")
+		v1.Static("/assets", c.publicPath)
 		users := v1.Group("/user")
 		{
 			users.GET("/:name", c.GetUser)
@@ -33,7 +33,7 @@ func SetupRouter(c *Controller) *gin.Engine {
 			restricted.GET("/ping", c.AuthPong)
 			toAdmins := restricted.Group("", c.AuthorizeAdmin)
 			{
-				toAdmins.PATCH("/geopoint/:id/enable", c.EnableGeoPoint)
+				toAdmins.PATCH("/geopoint/:id/enable", c.EnableGeoPoint, c.AppendGeoJson)
 				toAdmins.PATCH("/user/:id", c.MakeAdmin)
 				toAdmins.GET("/geopoint/:id", c.GetGeoPoint)
 			}

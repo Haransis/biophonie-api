@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"mime/multipart"
 	"net/http"
@@ -44,17 +45,36 @@ var validTokens []string
 
 func TestMain(m *testing.M) {
 	gin.SetMode(gin.TestMode)
+	preparePublicDir()
 	c = NewController()
 	r = SetupRouter(c)
 	c.clearDatabase()
+	c.refreshGeoJson()
 	validUsers = make([]user.User, 0)
 	validUsers = append(validUsers, adminUser)
 	validTokens = make([]string, 0)
 
-	c.preparePublicDir()
 	exitVal := m.Run()
 
 	os.Exit(exitVal)
+}
+
+func TestRefreshGeoJson(t *testing.T) {
+	bytesGeoJson, err := ioutil.ReadFile(c.geoJsonPath)
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+
+	var geoJson geopoint.GeoJson
+	if err := json.Unmarshal(bytesGeoJson, &geoJson); err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+
+	if len(geoJson.Features) != 0 {
+		t.Error("test-related: geoJson was not cleared properly")
+	}
 }
 
 func TestPingRoute(t *testing.T) {
@@ -258,7 +278,7 @@ func TestEnableGeoPoint(t *testing.T) {
 		{9999, validTokens[0], http.StatusNotFound},
 		{geoIdEnabled, validTokens[1], http.StatusUnauthorized},
 		{geoIdEnabled, validTokens[0], http.StatusOK},
-		{geoIdEnabled, validTokens[0], http.StatusOK},
+		{geoIdEnabled, validTokens[0], http.StatusNotFound},
 	}
 	for _, test := range tests {
 		w := httptest.NewRecorder()
@@ -272,6 +292,21 @@ func TestEnableGeoPoint(t *testing.T) {
 		r.ServeHTTP(w, req)
 		assert.Equal(t, test.StatusCode, w.Code)
 	}
+}
+
+func TestAppendGeoJson(t *testing.T) {
+	bytesGeoJson, err := ioutil.ReadFile(c.geoJsonPath)
+	if err != nil {
+		t.Error(err)
+	}
+
+	var geoJson geopoint.GeoJson
+	if err := json.Unmarshal(bytesGeoJson, &geoJson); err != nil {
+		t.Error(err)
+	}
+
+	assert.NotEqual(t, len(geoJson.Features), 0)
+	assert.Equal(t, geoJson.Features[0].Properties.Name, "Forest by night")
 }
 
 func TestGetGeoPoint(t *testing.T) {
@@ -373,7 +408,7 @@ func (c *Controller) clearDatabase() {
 	tx.Commit()
 }
 
-func (c *Controller) preparePublicDir() {
+func preparePublicDir() {
 	os.RemoveAll("/tmp/public")
 	os.MkdirAll("/tmp/public/picture", os.ModePerm)
 	os.MkdirAll("/tmp/public/sound", os.ModePerm)

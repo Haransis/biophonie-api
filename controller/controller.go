@@ -23,10 +23,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const geoJsonFileName = "geojson.json"
+
 type Controller struct {
-	Db        *sqlx.DB
-	verifyKey *rsa.PublicKey
-	signKey   *rsa.PrivateKey
+	Db          *sqlx.DB
+	publicPath  string
+	geoJsonPath string
+	verifyKey   *rsa.PublicKey
+	signKey     *rsa.PrivateKey
 }
 
 func NewController() *Controller {
@@ -38,6 +42,13 @@ func NewController() *Controller {
 		log.Fatalf("error initializing database: %q", err)
 	}
 	c.Db = db
+
+	c.publicPath = os.Getenv("PUBLIC_PATH")
+	if c.publicPath == "" {
+		log.Fatalf("public path is empty")
+	}
+	c.geoJsonPath = c.publicPath + geoJsonFileName
+	c.refreshGeoJson()
 
 	return c
 }
@@ -234,8 +245,6 @@ func (c *Controller) MakeAdmin(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "user is now admin"})
 }
 
-// TODO add a get geopointS route
-
 // BindGeoPoint godoc
 // @Summary create a geopoint
 // @Description create the geopoint in the database and save the sound and picture file (see testgeopoint dir)
@@ -360,7 +369,7 @@ func (c *Controller) EnableGeoPoint(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.Db.Exec("UPDATE geopoints SET available = TRUE WHERE id = $1", id)
+	result, err := c.Db.Exec("UPDATE geopoints SET available = TRUE WHERE id = $1 AND available = FALSE", id)
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
@@ -372,11 +381,12 @@ func (c *Controller) EnableGeoPoint(ctx *gin.Context) {
 		return
 	}
 	if rowsAffected != 1 {
-		ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("not found"))
+		ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("not found or already enabled"))
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "geopoint was enabled"})
+	ctx.Set("geoId", id)
 }
 
 // GetPicture godoc
