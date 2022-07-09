@@ -232,7 +232,8 @@ func TestCreateGeoPoint(t *testing.T) {
 		StatusCode  int
 	}{
 		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusOK},
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusOK},
+		{"../testgeopoint/merle.wav", "", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100), PictureTemplate: "forest"}, validTokens[0], http.StatusOK},
+		{"../testgeopoint/merle.wav", "", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
 		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Fo", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
 		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night very late at night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
 		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 100000001.0, Longitude: 1000000000.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
@@ -252,8 +253,10 @@ func TestCreateGeoPoint(t *testing.T) {
 		jsonFile.Seek(0, 0)
 		values := map[string]io.Reader{
 			"sound":    mustOpen(test.SoundPath),
-			"picture":  mustOpen(test.PicturePath),
 			"geopoint": jsonFile,
+		}
+		if test.PicturePath != "" {
+			values["picture"] = mustOpen(test.PicturePath)
 		}
 
 		w := httptest.NewRecorder()
@@ -264,6 +267,7 @@ func TestCreateGeoPoint(t *testing.T) {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", test.JWT))
 
 		r.ServeHTTP(w, req)
+		fmt.Println(w.Body)
 		assert.Equal(t, test.StatusCode, w.Code)
 	}
 }

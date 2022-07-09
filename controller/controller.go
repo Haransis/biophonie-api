@@ -287,6 +287,22 @@ func (c *Controller) BindGeoPoint(ctx *gin.Context) {
 		return
 	}
 
+	soundName := uuid.NewString() + ".wav"
+	pictureName := uuid.NewString() + ".jpg"
+	if !httputil.CheckFileContentType(bindGeo.Sound, "audio/wave") {
+		ctx.AbortWithError(http.StatusBadRequest, errors.New("sound was not wave file")).SetType(gin.ErrorTypePublic)
+		return
+	}
+
+	if addGeo.PictureTemplate == "" {
+		if !httputil.CheckFileContentType(bindGeo.Picture, "image/jpeg") {
+			ctx.AbortWithError(http.StatusBadRequest, errors.New("image was not jpeg file")).SetType(gin.ErrorTypePublic)
+			return
+		}
+	} else {
+		pictureName = addGeo.PictureTemplate + ".jpg"
+	}
+
 	addGeo.UserId, _ = ctx.MustGet("userId").(int)
 
 	geoPoint := geopoint.GeoPoint{
@@ -298,26 +314,12 @@ func (c *Controller) BindGeoPoint(ctx *gin.Context) {
 		},
 		CreatedOn:  addGeo.Date,
 		Amplitudes: addGeo.Amplitudes,
-		Picture:    fmt.Sprintf("%s.jpg", uuid.New()),
-		Sound:      fmt.Sprintf("%s.wav", uuid.New()),
+		Picture:    pictureName,
+		Sound:      soundName,
 	}
 
 	ctx.Set("bindGeo", bindGeo)
 	ctx.Set("geoPoint", geoPoint)
-}
-
-func (c *Controller) CheckGeoFiles(ctx *gin.Context) {
-	bindGeo, _ := ctx.MustGet("bindGeo").(geopoint.BindGeoPoint)
-
-	if !httputil.CheckFileContentType(bindGeo.Sound, "audio/wave") {
-		ctx.AbortWithError(http.StatusBadRequest, errors.New("sound was not wave file")).SetType(gin.ErrorTypePublic)
-		return
-	}
-
-	if !httputil.CheckFileContentType(bindGeo.Picture, "image/jpeg") {
-		ctx.AbortWithError(http.StatusBadRequest, errors.New("image was not jpeg file")).SetType(gin.ErrorTypePublic)
-		return
-	}
 }
 
 func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
@@ -336,9 +338,11 @@ func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
 		return
 	}
 
-	if err := ctx.SaveUploadedFile(bindGeo.Picture, fmt.Sprintf("%s/picture/%s", os.Getenv("PUBLIC_PATH"), geoPoint.Picture)); err != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not save uploaded picture: %s", err))
-		return
+	if bindGeo.Picture != nil {
+		if err := ctx.SaveUploadedFile(bindGeo.Picture, fmt.Sprintf("%s/picture/%s", os.Getenv("PUBLIC_PATH"), geoPoint.Picture)); err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not save uploaded picture: %s", err))
+			return
+		}
 	}
 
 	if err := ctx.SaveUploadedFile(bindGeo.Sound, fmt.Sprintf("%s/sound/%s", os.Getenv("PUBLIC_PATH"), geoPoint.Sound)); err != nil {

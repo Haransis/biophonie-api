@@ -24,6 +24,10 @@ type HTTPError struct {
 }
 
 func CheckFileContentType(fileHeader *multipart.FileHeader, checkType string) bool {
+	if fileHeader == nil {
+		return false
+	}
+
 	file, err := fileHeader.Open()
 	if err != nil {
 		log.Panicln(err)
