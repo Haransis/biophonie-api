@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/haran/biophonie-api/controller"
 	_ "github.com/haran/biophonie-api/docs"
@@ -26,7 +27,7 @@ func main() {
 	c := controller.NewController()
 	r := controller.SetupRouter(c)
 
-	if err := r.Run(":8080"); err != nil {
+	if err := r.Run(":" + os.Getenv("PORT")); err != nil {
 		log.Fatalf("Stopping server: %q", err)
 	}
 }
