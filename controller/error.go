@@ -27,6 +27,7 @@ func (c *Controller) HandleErrors(ctx *gin.Context) {
 			ctx.JSON(-1, errMsg(e.Error()))
 		case gin.ErrorTypePrivate:
 			ctx.JSON(-1, errMsg(InternalServerError))
+			log.Printf("%s %s", e.Meta, e.Err)
 		case gin.ErrorTypeBind:
 			if err, ok := e.Err.(*validator.ValidationErrors); ok {
 				ctx.JSON(-1, errMsg(ValidationErrorToText((*err)[0])))
@@ -42,7 +43,7 @@ func (c *Controller) HandleErrors(ctx *gin.Context) {
 					ctx.JSON(http.StatusBadRequest, errMsg("name was too long"))
 				default:
 					ctx.JSON(http.StatusInternalServerError, errMsg(InternalServerError))
-					log.Println(e.Meta) //prints additional context element
+					log.Printf("%s %s", e.Meta, e.Err)
 				}
 			} else {
 				switch e.Err {
@@ -52,7 +53,7 @@ func (c *Controller) HandleErrors(ctx *gin.Context) {
 					ctx.JSON(http.StatusUnauthorized, errMsg("wrong password"))
 				default:
 					ctx.JSON(http.StatusInternalServerError, errMsg(InternalServerError))
-					log.Println(e.Meta) //prints additional context element
+					log.Printf("%s %s", e.Meta, e.Err)
 				}
 			}
 		}
