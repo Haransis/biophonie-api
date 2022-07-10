@@ -253,7 +253,7 @@ func (c *Controller) MakeAdmin(ctx *gin.Context) {
 // @Tags Geopoint
 // @Param geopoint formData file true "geopoint infos in a utf-8 json file"
 // @Param sound formData file true "geopoint sound"
-// @Param picture formData file true "geopoint picture"
+// @Param picture formData file false "geopoint picture"
 // @Param Authorization header string true "Authentication header"
 // @Success 200 {object} geopoint.GeoPoint
 // @Failure 404 {object} controller.ErrMsg

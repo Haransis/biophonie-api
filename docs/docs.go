@@ -239,8 +239,7 @@ const docTemplate = `{
                         "type": "file",
                         "description": "geopoint picture",
                         "name": "picture",
-                        "in": "formData",
-                        "required": true
+                        "in": "formData"
                     },
                     {
                         "type": "string",

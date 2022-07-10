@@ -251,7 +251,6 @@ paths:
       - description: geopoint picture
         in: formData
         name: picture
-        required: true
         type: file
       - description: Authentication header
         in: header
