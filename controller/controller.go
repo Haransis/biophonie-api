@@ -339,13 +339,13 @@ func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
 	}
 
 	if bindGeo.Picture != nil {
-		if err := ctx.SaveUploadedFile(bindGeo.Picture, fmt.Sprintf("%s/picture/%s", os.Getenv("PUBLIC_PATH"), geoPoint.Picture)); err != nil {
+		if err := ctx.SaveUploadedFile(bindGeo.Picture, fmt.Sprintf("%s/picture/%s", c.publicPath, geoPoint.Picture)); err != nil {
 			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not save uploaded picture: %s", err))
 			return
 		}
 	}
 
-	if err := ctx.SaveUploadedFile(bindGeo.Sound, fmt.Sprintf("%s/sound/%s", os.Getenv("PUBLIC_PATH"), geoPoint.Sound)); err != nil {
+	if err := ctx.SaveUploadedFile(bindGeo.Sound, fmt.Sprintf("%s/sound/%s", c.publicPath, geoPoint.Sound)); err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not save uploaded sound: %s", err))
 		return
 	}
