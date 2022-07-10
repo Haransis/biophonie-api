@@ -233,6 +233,7 @@ func TestCreateGeoPoint(t *testing.T) {
 	}{
 		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusOK},
 		{"../testgeopoint/merle.wav", "", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100), PictureTemplate: "forest"}, validTokens[0], http.StatusOK},
+		{"../testgeopoint/merle.wav", "", geopoint.AddGeoPoint{Title: "Mountain by day", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100), PictureTemplate: "mountain"}, validTokens[0], http.StatusOK},
 		{"../testgeopoint/merle.wav", "", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
 		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Fo", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
 		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night very late at night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
@@ -267,7 +268,6 @@ func TestCreateGeoPoint(t *testing.T) {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", test.JWT))
 
 		r.ServeHTTP(w, req)
-		fmt.Println(w.Body)
 		assert.Equal(t, test.StatusCode, w.Code)
 	}
 }
@@ -282,6 +282,7 @@ func TestEnableGeoPoint(t *testing.T) {
 		{9999, validTokens[0], http.StatusNotFound},
 		{geoIdEnabled, validTokens[1], http.StatusUnauthorized},
 		{geoIdEnabled, validTokens[0], http.StatusOK},
+		{3, validTokens[0], http.StatusOK},
 		{geoIdEnabled, validTokens[0], http.StatusNotFound},
 	}
 	for _, test := range tests {
