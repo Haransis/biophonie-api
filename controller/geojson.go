@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/haran/biophonie-api/controller/geopoint"
 )
 
-const MINSIZE = 44
+const MINSIZE = 43
 
 func (c *Controller) refreshGeoJson() {
 	geos := make([]geopoint.GeoPoint, 0)
@@ -33,6 +34,7 @@ func (c *Controller) refreshGeoJson() {
 }
 
 func (c *Controller) AppendGeoJson(ctx *gin.Context) {
+	ctx.Next()
 	geoId := ctx.GetUint64("geoId")
 
 	var geopoint geopoint.GeoPoint
@@ -59,13 +61,17 @@ func (c *Controller) AppendGeoJson(ctx *gin.Context) {
 		log.Fatalf("could not stat GeoJson file: %s", err)
 	}
 
-	if info.Size() == MINSIZE {
+	offset := info.Size()
+	fmt.Println(offset)
+	if offset == MINSIZE {
+		featBytes = append(featBytes, []byte("]}")...)
+		offset -= 3
+	} else {
 		featBytes = append([]byte(","), featBytes...)
 		featBytes = append(featBytes, []byte("]}")...)
-	} else {
-		featBytes = append(featBytes, []byte("]}")...)
+		offset -= 2
 	}
-	if n, err := f.WriteAt(featBytes, info.Size()-3); err != nil || n != len(featBytes) {
+	if n, err := f.WriteAt(featBytes, offset); err != nil || n != len(featBytes) {
 		log.Fatalf("could not refresh GeoJson file: %s", err)
 	}
 }
