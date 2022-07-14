@@ -66,7 +66,7 @@ func TestRefreshGeoJson(t *testing.T) {
 		t.Fail()
 	}
 
-	var geoJson geopoint.GeoJson
+	var geoJson geoJson
 	if err := json.Unmarshal(bytesGeoJson, &geoJson); err != nil {
 		t.Error(err)
 		t.Fail()
@@ -305,7 +305,7 @@ func TestAppendGeoJson(t *testing.T) {
 		t.Error(err)
 	}
 
-	var geoJson geopoint.GeoJson
+	var geoJson geoJson
 	if err := json.Unmarshal(bytesGeoJson, &geoJson); err != nil {
 		t.Error(err)
 	}
@@ -499,4 +499,20 @@ func (c *Controller) wrongToken() []string {
 	tokens = append(tokens, token)
 	tokens = append(tokens, "")
 	return tokens
+}
+
+type geoJson struct {
+	Type     string    `json:"type"`
+	Features []Feature `json:"features"`
+}
+
+type Feature struct {
+	Type        string     `json:"type"`
+	Coordinates []float64  `json:"coordinates"`
+	Properties  Properties `json:"properties"`
+}
+
+type Properties struct {
+	Name string `json:"name"`
+	Id   int    `json:"id"`
 }

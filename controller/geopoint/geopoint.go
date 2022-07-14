@@ -9,9 +9,9 @@ import (
 )
 
 type GeoPoint struct {
-	Id         int           `db:"id" json:"id" example:"1" validate:"gt=0"`
+	Id         int           `db:"id" json:"id" example:"1"`
 	Title      string        `db:"title" json:"title" example:"Forêt à l'aube"`
-	UserId     int           `db:"user_id" json:"userId" example:"1" validate:"gt=0"`
+	UserId     int           `db:"user_id" json:"userId" example:"1"`
 	Location   postgis.Point `db:"location" json:"location"`
 	CreatedOn  time.Time     `db:"created_on" json:"createdOn" example:"2022-05-26T11:17:35.079344Z"`
 	Amplitudes pq.Int64Array `db:"amplitudes" json:"amplitudes" swaggertype:"array,number" example:"0,1,2,3,45,3,2,1"`
@@ -34,32 +34,4 @@ type BindGeoPoint struct {
 	Geopoint *multipart.FileHeader `form:"geopoint" binding:"required"`
 	Sound    *multipart.FileHeader `form:"sound" binding:"required"`
 	Picture  *multipart.FileHeader `form:"picture"`
-}
-
-func ToGeoJson(gs []GeoPoint) *GeoJson {
-	if len(gs) == 0 {
-		return &GeoJson{
-			Type:     "FeatureCollection",
-			Features: make([]Feature, 0),
-		}
-	}
-	feats := make([]Feature, 0)
-	for _, geopoint := range gs {
-		feats = append(feats, geopoint.ToFeature())
-	}
-	return &GeoJson{
-		Type:     "FeatureCollection",
-		Features: feats,
-	}
-}
-
-func (g *GeoPoint) ToFeature() Feature {
-	return Feature{
-		Type:        "Point",
-		Coordinates: []float64{g.Location.X, g.Location.Y},
-		Properties: Properties{
-			Name: g.Title,
-			Id:   g.Id,
-		},
-	}
 }
