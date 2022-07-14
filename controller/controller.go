@@ -23,7 +23,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const geoJsonFileName = "geojson.json"
+const geoJsonFileName = "/geojson.json"
 
 type Controller struct {
 	Db          *sqlx.DB
