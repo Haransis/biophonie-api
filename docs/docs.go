@@ -484,7 +484,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/user/token": {
+        "/user/authorize": {
             "post": {
                 "description": "create a token",
                 "consumes": [

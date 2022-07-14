@@ -164,7 +164,7 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, geopoint)
 }
 
-// CreateToken godoc
+// AuthorizeUser godoc
 // @Summary create a token
 // @Description create a token
 // @Accept json
@@ -175,8 +175,8 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 // @Failure 400 {object} controller.ErrMsg
 // @Failure 401 {object} controller.ErrMsg
 // @Failure 500 {object} controller.ErrMsg
-// @Router /user/token [post]
-func (c *Controller) CreateToken(ctx *gin.Context) {
+// @Router /user/authorize [post]
+func (c *Controller) AuthorizeUser(ctx *gin.Context) {
 	var authUser user.AuthUser
 	if err := ctx.BindJSON(&authUser); err != nil {
 		return

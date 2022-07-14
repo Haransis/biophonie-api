@@ -166,7 +166,7 @@ func TestGetUser(t *testing.T) {
 	}
 }
 
-func TestCreateToken(t *testing.T) {
+func TestAuthorizeUser(t *testing.T) {
 
 	tests := []struct {
 		AuthUser   user.AuthUser
@@ -184,7 +184,7 @@ func TestCreateToken(t *testing.T) {
 	for _, test := range tests {
 		w := httptest.NewRecorder()
 		body, _ := json.Marshal(test.AuthUser)
-		req, _ := http.NewRequest(http.MethodPost, "/api/v1/user/token", bytes.NewReader(body))
+		req, _ := http.NewRequest(http.MethodPost, "/api/v1/user/authorize", bytes.NewReader(body))
 
 		r.ServeHTTP(w, req)
 		assert.Equal(t, test.StatusCode, w.Code)

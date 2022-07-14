@@ -449,7 +449,7 @@ paths:
       summary: get a user
       tags:
       - User
-  /user/token:
+  /user/authorize:
     post:
       consumes:
       - application/json
