@@ -149,7 +149,7 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 		return
 	}
 
-	var geopoint geopoint.GeoPoint
+	var geopoint geopoint.DbGeoPoint
 	if err := c.Db.Get(&geopoint, "SELECT * FROM geopoints WHERE id = $1", id); err != nil {
 		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not get geopoint")
 		ctx.Abort()
@@ -160,6 +160,8 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 		ctx.AbortWithError(http.StatusForbidden, errors.New("geopoint is not enabled yet")).SetType(gin.ErrorTypePublic)
 		return
 	}
+	geopoint.Latitude = geopoint.Location.X
+	geopoint.Longitude = geopoint.Location.Y
 
 	ctx.JSON(http.StatusOK, geopoint)
 }
@@ -306,12 +308,10 @@ func (c *Controller) BindGeoPoint(ctx *gin.Context) {
 	addGeo.UserId, _ = ctx.MustGet("userId").(int)
 
 	geoPoint := geopoint.GeoPoint{
-		Title:  addGeo.Title,
-		UserId: addGeo.UserId,
-		Location: postgis.Point{
-			X: addGeo.Latitude,
-			Y: addGeo.Longitude,
-		},
+		Title:      addGeo.Title,
+		UserId:     addGeo.UserId,
+		Latitude:   addGeo.Latitude,
+		Longitude:  addGeo.Longitude,
 		CreatedOn:  addGeo.Date,
 		Amplitudes: addGeo.Amplitudes,
 		Picture:    pictureName,
@@ -326,13 +326,14 @@ func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
 	bindGeo, _ := ctx.MustGet("bindGeo").(geopoint.BindGeoPoint)
 	geoPoint, _ := ctx.MustGet("geoPoint").(geopoint.GeoPoint)
 
+	dbGeoPoint := geopoint.DbGeoPoint{GeoPoint: &geoPoint, Location: postgis.PointS{SRID: 4326, X: geoPoint.Latitude, Y: geoPoint.Longitude}}
 	stmt, err := c.Db.PrepareNamed("INSERT INTO geopoints (title, user_id, location, amplitudes, picture, sound, created_on) VALUES (:title,:user_id,GeomFromEWKB(:location),:amplitudes,:picture,:sound,:created_on) RETURNING id")
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not prepare geopoint creation: %s", err))
 		return
 	}
 
-	if err := stmt.Get(&geoPoint.Id, geoPoint); err != nil {
+	if err := stmt.Get(&geoPoint.Id, dbGeoPoint); err != nil {
 		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not create geopoint")
 		ctx.Abort()
 		return

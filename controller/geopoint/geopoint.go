@@ -12,12 +12,18 @@ type GeoPoint struct {
 	Id         int           `db:"id" json:"id" example:"1"`
 	Title      string        `db:"title" json:"title" example:"Forêt à l'aube"`
 	UserId     int           `db:"user_id" json:"userId" example:"1"`
-	Location   postgis.Point `db:"location" json:"location"`
+	Latitude   float64       `json:"latitude"`
+	Longitude  float64       `json:"longitude"`
 	CreatedOn  time.Time     `db:"created_on" json:"createdOn" example:"2022-05-26T11:17:35.079344Z"`
 	Amplitudes pq.Int64Array `db:"amplitudes" json:"amplitudes" swaggertype:"array,number" example:"0,1,2,3,45,3,2,1"`
 	Picture    string        `db:"picture" json:"picture" example:"https://example.com/picture-1.jpg"`
 	Sound      string        `db:"sound" json:"sound" example:"https://example.com/sound-2.wav"`
 	Available  bool          `db:"available" json:"available" example:"true"`
+}
+
+type DbGeoPoint struct {
+	*GeoPoint
+	Location postgis.PointS `db:"location" json:"-"`
 }
 
 type AddGeoPoint struct {
