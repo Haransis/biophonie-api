@@ -30,8 +30,10 @@ definitions:
       id:
         example: 1
         type: integer
-      location:
-        $ref: '#/definitions/postgis.Point'
+      latitude:
+        type: number
+      longitude:
+        type: number
       picture:
         example: https://example.com/picture-1.jpg
         type: string
@@ -44,13 +46,6 @@ definitions:
       userId:
         example: 1
         type: integer
-    type: object
-  postgis.Point:
-    properties:
-      x:
-        type: number
-      "y":
-        type: number
     type: object
   user.AddUser:
     properties:
@@ -115,7 +110,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: retrieve the geopoint in the database using its name
+      description: retrieve the geopoint in the database using its id
       parameters:
       - description: geopoint id
         in: path
@@ -212,6 +207,60 @@ paths:
           schema:
             $ref: '#/definitions/controller.ErrMsg'
       summary: get the sound filename
+      tags:
+      - Geopoint
+  /geopoint/closest/to/{latitude}/{longitude}:
+    get:
+      consumes:
+      - application/json
+      description: retrieve the closest geopoint to another geopoint, excluding other
+        geopoints
+      parameters:
+      - description: latitude
+        in: path
+        name: latitude
+        required: true
+        type: number
+      - description: longitude
+        in: path
+        name: longitude
+        required: true
+        type: number
+      - description: srid to project
+        in: query
+        name: srid
+        type: integer
+      - collectionFormat: multi
+        description: optional ids to exclude from search
+        in: query
+        items:
+          type: integer
+        name: not[]
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/geopoint.GeoPoint'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+      summary: get the closest geopoint
       tags:
       - Geopoint
   /ping:

@@ -39,5 +39,14 @@ type AddGeoPoint struct {
 type BindGeoPoint struct {
 	Geopoint *multipart.FileHeader `form:"geopoint" binding:"required"`
 	Sound    *multipart.FileHeader `form:"sound" binding:"required"`
-	Picture  *multipart.FileHeader `form:"picture"`
+	Picture  *multipart.FileHeader `form:"picture" binding:"omitempty"`
 }
+
+type ClosestGeoPoint struct {
+	Latitude   float64       `uri:"latitude" example:"18.16255" validate:"latitude"`
+	Longitude  float64       `uri:"longitude" example:"40.35735" validate:"longitude"`
+	SRID       *int32        `form:"srid" example:"4326" validate:"omitempty"`
+	IdExcluded pq.Int32Array `form:"not[]" example:"1,2,3,4" validate:"lt=10"`
+}
+
+const WGS84 = 4326

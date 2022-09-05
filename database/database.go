@@ -31,6 +31,10 @@ const schema = `--sql
 		available BOOLEAN NOT NULL DEFAULT FALSE
 	);`
 
+/*const addIndexing = `--sql
+CREATE INDEX idx_geopoints_geom ON geopoints USING gist ((location));
+`*/ //creates a gist index to help location research (to use ?)
+
 func InitDb() (*sqlx.DB, error) {
 	fmt.Println(os.Getenv("DATABASE_URL"))
 	db, err := sqlx.Open("postgres", os.Getenv("DATABASE_URL"))

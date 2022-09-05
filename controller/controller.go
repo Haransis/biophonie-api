@@ -25,6 +25,14 @@ import (
 
 const geoJsonFileName = "/geojson.json"
 
+const requestClosestGeoPoint = `--sql
+	WITH excluded(id) AS ( SELECT UNNEST($2::int[])) 
+	SELECT * FROM geopoints geo 
+	WHERE NOT EXISTS(SELECT 1 FROM excluded e WHERE geo.id = e.id) AND available = TRUE
+	ORDER BY geo.location <-> GeomFromEWKB($1)
+	LIMIT 1;
+`
+
 type Controller struct {
 	Db          *sqlx.DB
 	publicPath  string
@@ -131,7 +139,7 @@ func (c *Controller) GetUser(ctx *gin.Context) {
 
 // GetGeoPoint godoc
 // @Summary get a geopoint
-// @Description retrieve the geopoint in the database using its name
+// @Description retrieve the geopoint in the database using its id
 // @Accept json
 // @Produce json
 // @Tags Geopoint
@@ -152,6 +160,53 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 	var geopoint geopoint.DbGeoPoint
 	if err := c.Db.Get(&geopoint, "SELECT * FROM geopoints WHERE id = $1", id); err != nil {
 		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not get geopoint")
+		ctx.Abort()
+		return
+	}
+
+	if !geopoint.Available && !ctx.GetBool("admin") {
+		ctx.AbortWithError(http.StatusForbidden, errors.New("geopoint is not enabled yet")).SetType(gin.ErrorTypePublic)
+		return
+	}
+	geopoint.Latitude = geopoint.Location.X
+	geopoint.Longitude = geopoint.Location.Y
+
+	ctx.JSON(http.StatusOK, geopoint)
+}
+
+// GetClosestGeoPoint godoc
+// @Summary get the closest geopoint
+// @Description retrieve the closest geopoint to another geopoint, excluding other geopoints
+// @Accept json
+// @Produce json
+// @Tags Geopoint
+// @Param latitude path float64 true "latitude"
+// @Param longitude path float64 true "longitude"
+// @Param srid query int32 false "srid to project"
+// @Param not[] query []int32 false "optional ids to exclude from search"
+// @Success 200 {object} geopoint.GeoPoint
+// @Failure 400 {object} controller.ErrMsg
+// @Failure 403 {object} controller.ErrMsg
+// @Failure 404 {object} controller.ErrMsg
+// @Failure 500 {object} controller.ErrMsg
+// @Router /geopoint/closest/to/{latitude}/{longitude} [get]
+func (c *Controller) GetClosestGeoPoint(ctx *gin.Context) {
+	var closestTo geopoint.ClosestGeoPoint
+	if err := ctx.BindUri(&closestTo); err != nil {
+		return
+	}
+	if err := ctx.BindQuery(&closestTo); err != nil {
+		return
+	}
+
+	target := postgis.PointS{X: closestTo.Latitude, Y: closestTo.Longitude, SRID: geopoint.WGS84}
+	if closestTo.SRID != nil {
+		target.SRID = *closestTo.SRID
+	}
+
+	var geopoint geopoint.DbGeoPoint
+	if err := c.Db.Get(&geopoint, requestClosestGeoPoint, target, closestTo.IdExcluded); err != nil {
+		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not get closest geopoint")
 		ctx.Abort()
 		return
 	}
@@ -270,12 +325,14 @@ func (c *Controller) BindGeoPoint(ctx *gin.Context) {
 	geoFile, err := bindGeo.Geopoint.Open()
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not open geofile: %s", err))
+		return
 	}
 	defer geoFile.Close()
 
 	geoBytes, err := ioutil.ReadAll(geoFile)
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not read geofile: %s", err))
+		return
 	}
 
 	var addGeo geopoint.AddGeoPoint
@@ -326,7 +383,7 @@ func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
 	bindGeo, _ := ctx.MustGet("bindGeo").(geopoint.BindGeoPoint)
 	geoPoint, _ := ctx.MustGet("geoPoint").(geopoint.GeoPoint)
 
-	dbGeoPoint := geopoint.DbGeoPoint{GeoPoint: &geoPoint, Location: postgis.PointS{SRID: 4326, X: geoPoint.Latitude, Y: geoPoint.Longitude}}
+	dbGeoPoint := geopoint.DbGeoPoint{GeoPoint: &geoPoint, Location: postgis.PointS{SRID: geopoint.WGS84, X: geoPoint.Latitude, Y: geoPoint.Longitude}}
 	stmt, err := c.Db.PrepareNamed("INSERT INTO geopoints (title, user_id, location, amplitudes, picture, sound, created_on) VALUES (:title,:user_id,GeomFromEWKB(:location),:amplitudes,:picture,:sound,:created_on) RETURNING id")
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not prepare geopoint creation: %s", err))
