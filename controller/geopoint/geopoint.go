@@ -49,4 +49,8 @@ type ClosestGeoPoint struct {
 	IdExcluded pq.Int32Array `form:"not[]" example:"1,2,3,4" validate:"lt=10"`
 }
 
+type ClosestGeoId struct {
+	GeoId int `json:"geoId" db:"id" example:"18"`
+}
+
 const WGS84 = 4326

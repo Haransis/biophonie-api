@@ -6,6 +6,12 @@ definitions:
         example: malformed request
         type: string
     type: object
+  geopoint.ClosestGeoId:
+    properties:
+      geoId:
+        example: 18
+        type: integer
+    type: object
   geopoint.GeoPoint:
     properties:
       amplitudes:
@@ -243,7 +249,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/geopoint.GeoPoint'
+            $ref: '#/definitions/geopoint.ClosestGeoId'
         "400":
           description: Bad Request
           schema:

@@ -25,9 +25,9 @@ import (
 
 const geoJsonFileName = "/geojson.json"
 
-const requestClosestGeoPoint = `--sql
+const requestClosestGeoId = `--sql
 	WITH excluded(id) AS ( SELECT UNNEST($2::int[])) 
-	SELECT * FROM geopoints geo 
+	SELECT geo.id FROM geopoints geo 
 	WHERE NOT EXISTS(SELECT 1 FROM excluded e WHERE geo.id = e.id) AND available = TRUE
 	ORDER BY geo.location <-> GeomFromEWKB($1)
 	LIMIT 1;
@@ -184,7 +184,7 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 // @Param longitude path float64 true "longitude"
 // @Param srid query int32 false "srid to project"
 // @Param not[] query []int32 false "optional ids to exclude from search"
-// @Success 200 {object} geopoint.GeoPoint
+// @Success 200 {object} geopoint.ClosestGeoId
 // @Failure 400 {object} controller.ErrMsg
 // @Failure 403 {object} controller.ErrMsg
 // @Failure 404 {object} controller.ErrMsg
@@ -204,21 +204,14 @@ func (c *Controller) GetClosestGeoPoint(ctx *gin.Context) {
 		target.SRID = *closestTo.SRID
 	}
 
-	var geopoint geopoint.DbGeoPoint
-	if err := c.Db.Get(&geopoint, requestClosestGeoPoint, target, closestTo.IdExcluded); err != nil {
+	var geoId geopoint.ClosestGeoId
+	if err := c.Db.Get(&geoId, requestClosestGeoId, target, closestTo.IdExcluded); err != nil {
 		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not get closest geopoint")
 		ctx.Abort()
 		return
 	}
 
-	if !geopoint.Available && !ctx.GetBool("admin") {
-		ctx.AbortWithError(http.StatusForbidden, errors.New("geopoint is not enabled yet")).SetType(gin.ErrorTypePublic)
-		return
-	}
-	geopoint.Latitude = geopoint.Location.X
-	geopoint.Longitude = geopoint.Location.Y
-
-	ctx.JSON(http.StatusOK, geopoint)
+	ctx.JSON(http.StatusOK, geoId)
 }
 
 // AuthorizeUser godoc

@@ -81,7 +81,7 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/geopoint.GeoPoint"
+                            "$ref": "#/definitions/geopoint.ClosestGeoId"
                         }
                     },
                     "400": {
@@ -680,6 +680,15 @@ var doc = `{
                 "message": {
                     "type": "string",
                     "example": "malformed request"
+                }
+            }
+        },
+        "geopoint.ClosestGeoId": {
+            "type": "object",
+            "properties": {
+                "geoId": {
+                    "type": "integer",
+                    "example": 18
                 }
             }
         },
