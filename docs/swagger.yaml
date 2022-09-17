@@ -8,7 +8,7 @@ definitions:
     type: object
   geopoint.ClosestGeoId:
     properties:
-      geoId:
+      id:
         example: 18
         type: integer
     type: object

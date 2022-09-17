@@ -50,7 +50,7 @@ type ClosestGeoPoint struct {
 }
 
 type ClosestGeoId struct {
-	GeoId int `json:"geoId" db:"id" example:"18"`
+	Id int `json:"id" db:"id" example:"18"`
 }
 
 const WGS84 = 4326

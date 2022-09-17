@@ -686,7 +686,7 @@ var doc = `{
         "geopoint.ClosestGeoId": {
             "type": "object",
             "properties": {
-                "geoId": {
+                "id": {
                     "type": "integer",
                     "example": 18
                 }
