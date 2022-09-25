@@ -2,3 +2,4 @@ picture/[0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z][0-9a-z]-[0-9a-z
 sound/*
 !sound/.gitkeep
 geojson.json
+go.sum

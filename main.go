@@ -28,7 +28,7 @@ func main() {
 	c := controller.NewController()
 	r := controller.SetupRouter(c)
 
-	if err := r.Run(":" + os.Getenv("PORT")); err != nil {
+	if err := r.Run("localhost:" + os.Getenv("PORT")); err != nil {
 		log.Fatalf("Stopping server: %q", err)
 	}
 }

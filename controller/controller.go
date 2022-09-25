@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -218,10 +217,10 @@ func (c *Controller) GetClosestGeoPoint(ctx *gin.Context) {
 // @Summary create a token
 // @Description create a token
 // @Accept json
-// @Produce plain
+// @Produce json
 // @Tags Authentication
 // @Param user body user.AuthUser true "authentication user"
-// @Success 200 {string} string "token to use for authentication"
+// @Success 200 {string} user.AccessToken "token to use for authentication"
 // @Failure 400 {object} controller.ErrMsg
 // @Failure 401 {object} controller.ErrMsg
 // @Failure 500 {object} controller.ErrMsg
@@ -232,27 +231,27 @@ func (c *Controller) AuthorizeUser(ctx *gin.Context) {
 		return
 	}
 
-	var user user.User
-	if err := c.Db.Get(&user, "SELECT * FROM accounts WHERE name = $1", authUser.Name); err != nil {
+	var authorizedUser user.User
+	if err := c.Db.Get(&authorizedUser, "SELECT * FROM accounts WHERE name = $1", authUser.Name); err != nil {
 		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not get password")
 		ctx.Abort()
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(authUser.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(authorizedUser.Password), []byte(authUser.Password)); err != nil {
 		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not compare password and hash")
 		ctx.Abort()
 		return
 	}
 
-	token, err := c.createToken(user.Name, user.Admin)
+	token, err := c.createToken(authorizedUser.Name, authorizedUser.Admin)
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not sign token: %s", err))
 		return
 	}
 
-	ctx.Header("Content-Type", "application/jwt")
-	ctx.String(http.StatusOK, token)
+	ctx.Header("Content-Type", "application/json")
+	ctx.JSON(http.StatusOK, user.AccessToken{Token: token})
 }
 
 // MakeAdmin godoc
@@ -301,7 +300,7 @@ func (c *Controller) MakeAdmin(ctx *gin.Context) {
 // @Accept mpfd
 // @Produce json
 // @Tags Geopoint
-// @Param geopoint formData file true "geopoint infos in a utf-8 json file"
+// @Param geopoint formData string true "geopoint infos in a utf-8 json file"
 // @Param sound formData file true "geopoint sound"
 // @Param picture formData file false "geopoint picture"
 // @Param Authorization header string true "Authentication header"
@@ -315,21 +314,15 @@ func (c *Controller) BindGeoPoint(ctx *gin.Context) {
 		return
 	}
 
-	geoFile, err := bindGeo.Geopoint.Open()
-	if err != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not open geofile: %s", err))
-		return
-	}
-	defer geoFile.Close()
-
-	geoBytes, err := ioutil.ReadAll(geoFile)
-	if err != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not read geofile: %s", err))
+	var geoPointJson string
+	if geoPointJson = ctx.Request.PostFormValue("geopoint"); geoPointJson == "" {
+		ctx.AbortWithError(http.StatusBadRequest, errors.New("geopoint was not in request")).
+			SetType(gin.ErrorTypeBind)
 		return
 	}
 
 	var addGeo geopoint.AddGeoPoint
-	if err := json.Unmarshal(geoBytes, &addGeo); err != nil {
+	if err := json.Unmarshal([]byte(geoPointJson), &addGeo); err != nil {
 		ctx.AbortWithError(http.StatusBadRequest, err).SetType(gin.ErrorTypePublic)
 		return
 	}

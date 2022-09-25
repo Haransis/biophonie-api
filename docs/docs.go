@@ -308,7 +308,7 @@ var doc = `{
                 "summary": "create a geopoint",
                 "parameters": [
                     {
-                        "type": "file",
+                        "type": "string",
                         "description": "geopoint infos in a utf-8 json file",
                         "name": "geopoint",
                         "in": "formData",
@@ -577,7 +577,7 @@ var doc = `{
                     "application/json"
                 ],
                 "produces": [
-                    "text/plain"
+                    "application/json"
                 ],
                 "tags": [
                     "Authentication"

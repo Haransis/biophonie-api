@@ -4,6 +4,10 @@ type AddUser struct {
 	Name string `json:"name" example:"bob" binding:"required,min=3,max=20"`
 }
 
+type AccessToken struct {
+	Token string `json:"token"`
+}
+
 type AuthUser struct {
 	Name     string `json:"name" example:"bob" binding:"required,min=3,max=20"`
 	Password string `json:"password" example:"9b768967-d491-4baa-a812-24ea8a9c274d" binding:"required,uuid"`

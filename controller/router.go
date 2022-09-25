@@ -10,8 +10,9 @@ func SetupRouter(c *Controller) *gin.Engine {
 	r := gin.Default()
 	r.Use(c.HandleErrors)
 	r.Use(gin.Recovery())
+	// r.Use(cors.Default()) // use for sound streaming
 	r.SetTrustedProxies(nil)
-	r.MaxMultipartMemory = 10000000 // 10 MB
+	r.MaxMultipartMemory = 100000000 // 100 MB
 	v1 := r.Group("/api/v1")
 	{
 		v1.Static("/assets", c.publicPath)

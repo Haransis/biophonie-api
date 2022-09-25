@@ -25,7 +25,7 @@ const schema = `--sql
 		user_id serial NOT NULL,
 		location geography ( POINT , 4326 ),
 		created_on TIMESTAMP NOT NULL,
-		amplitudes INT [],
+		amplitudes FLOAT [],
 		picture VARCHAR ( 42 ) NOT NULL,
 		sound VARCHAR ( 42 ) NOT NULL,
 		available BOOLEAN NOT NULL DEFAULT FALSE

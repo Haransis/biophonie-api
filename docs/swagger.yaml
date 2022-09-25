@@ -297,7 +297,7 @@ paths:
         in: formData
         name: geopoint
         required: true
-        type: file
+        type: string
       - description: geopoint sound
         in: formData
         name: sound
@@ -517,7 +517,7 @@ paths:
         schema:
           $ref: '#/definitions/user.AuthUser'
       produces:
-      - text/plain
+      - application/json
       responses:
         "200":
           description: token to use for authentication
