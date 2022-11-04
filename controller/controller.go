@@ -167,8 +167,8 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 		ctx.AbortWithError(http.StatusForbidden, errors.New("geopoint is not enabled yet")).SetType(gin.ErrorTypePublic)
 		return
 	}
-	geopoint.Latitude = geopoint.Location.X
-	geopoint.Longitude = geopoint.Location.Y
+	geopoint.Latitude = geopoint.Location.Y
+	geopoint.Longitude = geopoint.Location.X
 
 	ctx.JSON(http.StatusOK, geopoint)
 }
@@ -369,7 +369,7 @@ func (c *Controller) CreateGeoPoint(ctx *gin.Context) {
 	bindGeo, _ := ctx.MustGet("bindGeo").(geopoint.BindGeoPoint)
 	geoPoint, _ := ctx.MustGet("geoPoint").(geopoint.GeoPoint)
 
-	dbGeoPoint := geopoint.DbGeoPoint{GeoPoint: &geoPoint, Location: postgis.PointS{SRID: geopoint.WGS84, X: geoPoint.Latitude, Y: geoPoint.Longitude}}
+	dbGeoPoint := geopoint.DbGeoPoint{GeoPoint: &geoPoint, Location: postgis.PointS{SRID: geopoint.WGS84, X: geoPoint.Longitude, Y: geoPoint.Latitude}}
 	stmt, err := c.Db.PrepareNamed("INSERT INTO geopoints (title, user_id, location, amplitudes, picture, sound, created_on) VALUES (:title,:user_id,GeomFromEWKB(:location),:amplitudes,:picture,:sound,:created_on) RETURNING id")
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not prepare geopoint creation: %s", err))
