@@ -2,6 +2,7 @@ package controller
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -31,6 +32,8 @@ func (c *Controller) HandleErrors(ctx *gin.Context) {
 		case gin.ErrorTypeBind:
 			if err, ok := e.Err.(*validator.ValidationErrors); ok {
 				ctx.JSON(-1, errMsg(ValidationErrorToText((*err)[0])))
+			} else if err, ok := e.Err.(*json.SyntaxError); ok {
+				ctx.JSON(-1, fmt.Sprintf("syntax error (%s) at byte offset %d", err.Error(), err.Offset))
 			} else {
 				ctx.JSON(-1, errMsg(fmt.Sprintf("malformed request: %s", e.Err)))
 			}
