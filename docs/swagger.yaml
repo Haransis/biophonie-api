@@ -331,6 +331,47 @@ paths:
       tags:
       - Geopoint
   /restricted/geopoint/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: delete a geopoint
+      parameters:
+      - description: geopoint id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Authentication header
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user is now admin
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/controller.ErrMsg'
+      summary: delete a geopoint
+      tags:
+      - Geopoint
     get:
       consumes:
       - application/json
