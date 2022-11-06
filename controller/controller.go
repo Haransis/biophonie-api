@@ -136,6 +136,22 @@ func (c *Controller) GetUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
+// GetRestrictedGeoPoint godoc
+// @Summary get a geopoint which was not enabled
+// @Description retrieve the geopoint in the database using its id
+// @Accept json
+// @Produce json
+// @Tags Geopoint
+// @Param id path int true "geopoint id"
+// @Param Authorization header string true "Authentication header"
+// @Success 200 {object} geopoint.GeoPoint
+// @Failure 400 {object} controller.ErrMsg
+// @Failure 403 {object} controller.ErrMsg
+// @Failure 404 {object} controller.ErrMsg
+// @Failure 500 {object} controller.ErrMsg
+// @Router /restricted/geopoint/{id} [get]
+func GetRestrictedGeoPoint() {}
+
 // GetGeoPoint godoc
 // @Summary get a geopoint
 // @Description retrieve the geopoint in the database using its id

@@ -357,6 +357,69 @@ var doc = `{
                 }
             }
         },
+        "/restricted/geopoint/{id}": {
+            "get": {
+                "description": "retrieve the geopoint in the database using its id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Geopoint"
+                ],
+                "summary": "get a geopoint which was not enabled",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "geopoint id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Authentication header",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/geopoint.GeoPoint"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/controller.ErrMsg"
+                        }
+                    }
+                }
+            }
+        },
         "/restricted/geopoint/{id}/enable": {
             "patch": {
                 "description": "make the geopoint available",
