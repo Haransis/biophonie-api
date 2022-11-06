@@ -10,6 +10,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -234,9 +235,9 @@ func TestCreateGeoPoint(t *testing.T) {
 		JWT         string
 		StatusCode  int
 	}{
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusOK},
+		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.1, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusOK},
 		{"../testgeopoint/merle.wav", "", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100), PictureTemplate: "forest"}, validTokens[0], http.StatusOK},
-		{"../testgeopoint/merle.wav", "", geopoint.AddGeoPoint{Title: "Mountain by day", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100), PictureTemplate: "mountain"}, validTokens[0], http.StatusOK},
+		{"../testgeopoint/merle.wav", "", geopoint.AddGeoPoint{Title: "Mountain by day", Latitude: 1.0, Longitude: 1.3, Date: time.Now(), Amplitudes: newAmplitudes(100), PictureTemplate: "mountain"}, validTokens[0], http.StatusOK},
 		{"../testgeopoint/merle.wav", "", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
 		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Fo", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
 		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night very late at night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
@@ -342,7 +343,39 @@ func TestGetGeoPoint(t *testing.T) {
 }
 
 func TestGetClosestGeoPoint(t *testing.T) {
-	//TODO
+	tests := []struct {
+		Latitude   float64
+		Longitude  float64
+		Not        []string
+		StatusCode int
+		IdResult   int
+	}{
+		{1, -10000000000, []string{}, http.StatusBadRequest, 0},
+		{-10000, 1.0, []string{}, http.StatusBadRequest, 0},
+		{1.0, 1.1, []string{}, http.StatusOK, geoIdEnabled},
+		{1.0, 1.1, []string{fmt.Sprint(geoIdEnabled)}, http.StatusOK, 3},
+		{1.0, 1.1, []string{fmt.Sprint(geoIdEnabled), "3"}, http.StatusNotFound, 0},
+	}
+
+	for _, test := range tests {
+		w := httptest.NewRecorder()
+
+		query := fmt.Sprintf("/api/v1/geopoint/closest/to/%f/%f", test.Latitude, test.Longitude)
+		values := url.Values{"not[]": test.Not}
+		query += "?" + values.Encode()
+		req, _ := http.NewRequest(http.MethodGet, query, nil)
+
+		r.ServeHTTP(w, req)
+		assert.Equal(t, test.StatusCode, w.Code)
+
+		if test.StatusCode == http.StatusOK {
+			var got struct{ Id int }
+			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+				t.Error(err)
+			}
+			assert.Equal(t, test.IdResult, got.Id)
+		}
+	}
 }
 
 func TestGetRestrictedGeoPoint(t *testing.T) {
