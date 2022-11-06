@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -406,6 +407,38 @@ func TestGetRestrictedGeoPoint(t *testing.T) {
 				t.Error(err)
 			}
 			assert.Equal(t, test.GeoPoint.Title, got.Title)
+		}
+	}
+}
+
+func TestDeleteGeoPoint(t *testing.T) {
+	tests := []struct {
+		IdToDelete int
+		JWT        string
+		StatusCode int
+	}{
+		{geoIdEnabled, "", http.StatusUnauthorized},
+		{12000, validTokens[0], http.StatusNotFound},
+		{geoIdEnabled, validTokens[0], http.StatusOK},
+	}
+
+	for _, test := range tests {
+		w := httptest.NewRecorder()
+
+		req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/restricted/geopoint/%d", test.IdToDelete), nil)
+
+		if test.JWT != "" {
+			// Write authorization token in header
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", test.JWT))
+		}
+
+		r.ServeHTTP(w, req)
+		assert.Equal(t, test.StatusCode, w.Code)
+
+		if test.StatusCode == http.StatusOK {
+			var geoPoint geopoint.DbGeoPoint
+			err := c.Db.Get(&geoPoint, "SELECT * FROM geopoints WHERE id = $1", test.IdToDelete)
+			assert.Equal(t, err, sql.ErrNoRows)
 		}
 	}
 }
