@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -190,8 +191,11 @@ func TestAuthorizeUser(t *testing.T) {
 		assert.Equal(t, test.StatusCode, w.Code)
 
 		if w.Code == http.StatusOK {
-			token := w.Body.Bytes()
-			validTokens = append(validTokens, string(token))
+			var got user.AccessToken
+			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+				t.Error(err)
+			}
+			validTokens = append(validTokens, got.Token)
 		}
 	}
 }
@@ -202,7 +206,6 @@ func TestPingAuthenticated(t *testing.T) {
 		JWT        string
 		StatusCode int
 	}{
-		{validTokens[0], http.StatusOK},
 		{validTokens[0], http.StatusOK},
 		{unvalidTokens[0], http.StatusNotFound},
 		{unvalidTokens[1], http.StatusUnauthorized},
@@ -245,16 +248,13 @@ func TestCreateGeoPoint(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		userBytes, _ := json.Marshal(test.GeoPoint)
-		jsonFile, err := os.CreateTemp("", "*.json")
+		userBytes, err := json.Marshal(test.GeoPoint)
 		if err != nil {
 			t.Error(err)
 		}
-		jsonFile.Write(userBytes)
-		jsonFile.Seek(0, 0)
 		values := map[string]io.Reader{
 			"sound":    mustOpen(test.SoundPath),
-			"geopoint": jsonFile,
+			"geopoint": strings.NewReader(string(userBytes)),
 		}
 		if test.PicturePath != "" {
 			values["picture"] = mustOpen(test.PicturePath)
@@ -341,6 +341,10 @@ func TestGetGeoPoint(t *testing.T) {
 	}
 }
 
+func TestGetClosestGeoPoint(t *testing.T) {
+	//TODO
+}
+
 func TestGetRestrictedGeoPoint(t *testing.T) {
 	tests := []struct {
 		GeoPoint   geopoint.GeoPoint
@@ -419,10 +423,10 @@ func preparePublicDir() {
 	os.MkdirAll("/tmp/public/sound", os.ModePerm)
 }
 
-func newAmplitudes(length int) []int64 {
-	ampl := make([]int64, length)
+func newAmplitudes(length int) []float64 {
+	ampl := make([]float64, length)
 	for i := 0; i < length; i++ {
-		ampl[i] = rand.Int63n(100) - rand.Int63n(100)
+		ampl[i] = rand.Float64() - rand.Float64()
 	}
 	return ampl
 }
