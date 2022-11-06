@@ -42,10 +42,10 @@ type BindGeoPoint struct {
 }
 
 type ClosestGeoPoint struct {
-	Latitude   float64       `uri:"latitude" example:"18.16255" validate:"latitude"`
-	Longitude  float64       `uri:"longitude" example:"40.35735" validate:"longitude"`
-	SRID       *int32        `form:"srid" example:"4326" validate:"omitempty"`
-	IdExcluded pq.Int32Array `form:"not[]" example:"1,2,3,4" validate:"lt=10"`
+	Latitude   float64       `uri:"latitude" example:"18.16255" binding:"required,latitude"`
+	Longitude  float64       `uri:"longitude" example:"40.35735" binding:"required,longitude"`
+	SRID       *int32        `form:"srid" example:"4326" binding:"omitempty"`
+	IdExcluded pq.Int32Array `form:"not[]" example:"1,2,3,4" binding:"lt=10"`
 }
 
 type ClosestGeoId struct {
