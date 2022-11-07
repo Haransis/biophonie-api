@@ -229,6 +229,46 @@ func (c *Controller) GetClosestGeoPoint(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, geoId)
 }
 
+// DeleteGeopoint godoc
+// @Summary delete a geopoint
+// @Description delete a geopoint
+// @Accept json
+// @Produce json
+// @Tags Geopoint
+// @Param id path int true "geopoint id"
+// @Param Authorization header string true "Authentication header"
+// @Success 200 {string} string "user is now admin"
+// @Failure 400 {object} controller.ErrMsg
+// @Failure 401 {object} controller.ErrMsg
+// @Failure 404 {object} controller.ErrMsg
+// @Failure 500 {object} controller.ErrMsg
+// @Router /restricted/geopoint/{id} [delete]
+func (c *Controller) DeleteGeoPoint(ctx *gin.Context) {
+	id, err := strconv.ParseUint(ctx.Param("id"), 10, 0)
+	if err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err).SetType(gin.ErrorTypePublic)
+		return
+	}
+
+	result, err := c.Db.Exec("DELETE FROM geopoints WHERE id = $1", id)
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	if rowsAffected != 1 {
+		ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("not found or already deleted"))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "geopoint was deleted"})
+}
+
 // AuthorizeUser godoc
 // @Summary create a token
 // @Description create a token

@@ -38,6 +38,7 @@ func SetupRouter(c *Controller) *gin.Engine {
 				toAdmins.PATCH("/geopoint/:id/enable", c.EnableGeoPoint, c.AppendGeoJson)
 				toAdmins.PATCH("/user/:id", c.MakeAdmin)
 				toAdmins.GET("/geopoint/:id", c.GetGeoPoint)
+				toAdmins.DELETE("/geopoint/:id", c.DeleteGeoPoint)
 			}
 		}
 		v1.GET("/ping", c.Pong)
