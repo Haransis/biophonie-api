@@ -150,7 +150,9 @@ func (c *Controller) GetUser(ctx *gin.Context) {
 // @Failure 404 {object} controller.ErrMsg
 // @Failure 500 {object} controller.ErrMsg
 // @Router /restricted/geopoint/{id} [get]
-func GetRestrictedGeoPoint() {}
+func GetRestrictedGeoPoint() {
+	// kept only for swagger generation
+}
 
 // GetGeoPoint godoc
 // @Summary get a geopoint
@@ -187,6 +189,40 @@ func (c *Controller) GetGeoPoint(ctx *gin.Context) {
 	geopoint.Longitude = geopoint.Location.X
 
 	ctx.JSON(http.StatusOK, geopoint)
+}
+
+// GetAssets godoc
+// @Summary get the picture and sound filenames
+// @Description located in assets/
+// @Accept json
+// @Produce json
+// @Tags Geopoint
+// @Param id path int true "geopoint id"
+// @Success 200 {string} geopoint.Assets
+// @Failure 400 {object} controller.ErrMsg
+// @Failure 404 {object} controller.ErrMsg
+// @Failure 500 {object} controller.ErrMsg
+// @Router /geopoint/{id}/assets [get]
+func (c *Controller) GetAssets(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err).SetType(gin.ErrorTypePublic)
+		return
+	}
+
+	var point geopoint.DbGeoPoint
+	if err := c.Db.Get(&point, "SELECT * FROM geopoints WHERE id = $1", id); err != nil {
+		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not get geopoint for assets")
+		ctx.Abort()
+		return
+	}
+
+	if !point.Available && !ctx.GetBool("admin") {
+		ctx.AbortWithError(http.StatusForbidden, errors.New("geopoint is not enabled yet")).SetType(gin.ErrorTypePublic)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, geopoint.Assets{Picture: point.Picture, Sound: point.Sound})
 }
 
 // GetClosestGeoPoint godoc
@@ -491,64 +527,6 @@ func (c *Controller) EnableGeoPoint(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "geopoint was enabled"})
 	ctx.Set("geoId", id)
-}
-
-// GetPicture godoc
-// @Summary get the picture filename
-// @Description located in assets/
-// @Accept json
-// @Produce json
-// @Tags Geopoint
-// @Param id path int true "geopoint id"
-// @Success 200 {string} string
-// @Failure 400 {object} controller.ErrMsg
-// @Failure 404 {object} controller.ErrMsg
-// @Failure 500 {object} controller.ErrMsg
-// @Router /geopoint/{id}/picture [get]
-func (c *Controller) GetPicture(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		ctx.AbortWithError(http.StatusBadRequest, err).SetType(gin.ErrorTypePublic)
-		return
-	}
-
-	var picture string
-	if err := c.Db.Get(&picture, "SELECT picture FROM geopoints WHERE id = $1", id); err != nil {
-		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not get picture")
-		ctx.Abort()
-		return
-	}
-
-	ctx.JSON(http.StatusOK, picture)
-}
-
-// GetSound godoc
-// @Summary get the sound filename
-// @Description located in assets/
-// @Accept json
-// @Produce json
-// @Tags Geopoint
-// @Param id path int true "geopoint id"
-// @Success 200 {string} string
-// @Failure 400 {object} controller.ErrMsg
-// @Failure 404 {object} controller.ErrMsg
-// @Failure 500 {object} controller.ErrMsg
-// @Router /geopoint/{id}/sound [get]
-func (c *Controller) GetSound(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		ctx.AbortWithError(http.StatusBadRequest, err).SetType(gin.ErrorTypePublic)
-		return
-	}
-
-	var sound string
-	if err := c.Db.Get(&sound, "SELECT sound FROM geopoints WHERE id = $1", id); err != nil {
-		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not get sound")
-		ctx.Abort()
-		return
-	}
-
-	ctx.JSON(http.StatusOK, sound)
 }
 
 // AuthPong godoc

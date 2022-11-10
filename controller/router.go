@@ -26,8 +26,7 @@ func SetupRouter(c *Controller) *gin.Engine {
 		{
 			geopoints.GET("/:id", c.GetGeoPoint)
 			geopoints.GET("/closest/to/:latitude/:longitude", c.GetClosestGeoPoint)
-			geopoints.GET("/:id/picture", c.GetPicture)
-			geopoints.GET("/:id/sound", c.GetSound)
+			geopoints.GET("/:id/assets", c.GetAssets)
 		}
 		restricted := v1.Group("/restricted", c.Authorize)
 		{

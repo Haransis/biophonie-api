@@ -52,4 +52,9 @@ type ClosestGeoId struct {
 	Id int `json:"id" db:"id" example:"18"`
 }
 
+type Assets struct {
+	Picture string `json:"picture" db:"picture" example:"forest"`
+	Sound   string `json:"sound" db:"sound" example:"forest"`
+}
+
 const WGS84 = 4326

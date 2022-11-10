@@ -356,7 +356,7 @@ func TestGetGeoPoint(t *testing.T) {
 		GeoPoint   geopoint.GeoPoint
 		StatusCode int
 	}{
-		{geopoint.GeoPoint{Id: 9999, Title: "Forest by night"}, http.StatusNotFound},
+		{geopoint.GeoPoint{Id: 9999, Title: "Random"}, http.StatusNotFound},
 		{*unavailableGeoPoint.GeoPoint, http.StatusForbidden},
 		{*availableGeoPoint1.GeoPoint, http.StatusOK},
 	}
@@ -374,6 +374,34 @@ func TestGetGeoPoint(t *testing.T) {
 				t.Error(err)
 			}
 			assert.Equal(t, test.GeoPoint.Title, got.Title)
+		}
+	}
+}
+
+func TestGetAssets(t *testing.T) {
+	tests := []struct {
+		GeoPoint   geopoint.GeoPoint
+		StatusCode int
+	}{
+		{geopoint.GeoPoint{Id: 9999, Title: "Random"}, http.StatusNotFound},
+		{*unavailableGeoPoint.GeoPoint, http.StatusForbidden},
+		{*availableGeoPoint1.GeoPoint, http.StatusOK},
+	}
+
+	for _, test := range tests {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/geopoint/%d/assets", test.GeoPoint.Id), nil)
+
+		r.ServeHTTP(w, req)
+		assert.Equal(t, test.StatusCode, w.Code)
+
+		if test.StatusCode == http.StatusOK {
+			var got geopoint.Assets
+			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+				t.Error(err)
+			}
+			assert.Equal(t, test.GeoPoint.Picture, got.Picture)
+			assert.Equal(t, test.GeoPoint.Sound, got.Sound)
 		}
 	}
 }
