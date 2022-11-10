@@ -19,7 +19,7 @@ func SetupRouter(c *Controller) *gin.Engine {
 		users := v1.Group("/user")
 		{
 			users.GET("/:name", c.GetUser)
-			users.POST("", c.CreateUser)
+			users.POST("", c.PostUser)
 			users.POST("/authorize", c.AuthorizeUser)
 		}
 		geopoints := v1.Group("/geopoint")

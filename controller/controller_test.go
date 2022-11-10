@@ -128,7 +128,7 @@ func TestPingRoute(t *testing.T) {
 	assert.Equal(t, `{"message":"pong"}`, w.Body.String())
 }
 
-func TestCreateUser(t *testing.T) {
+func TestPostUser(t *testing.T) {
 
 	tests := []struct {
 		AddUser    user.AddUser
@@ -264,7 +264,7 @@ func TestPingAuthenticated(t *testing.T) {
 
 }
 
-func TestCreateGeoPoint(t *testing.T) {
+func TestPostGeoPoint(t *testing.T) {
 	tests := []struct {
 		SoundPath   string
 		PicturePath string
@@ -614,11 +614,11 @@ func (c *Controller) wrongToken() []string {
 
 	t := jwt.New(jwt.GetSigningMethod("RS256"))
 
-	t.Claims = &CustomClaims{
-		&jwt.RegisteredClaims{
+	t.Claims = &user.CustomClaims{
+		RegisteredClaims: &jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24 * 365)),
 		},
-		UserInfo{"random", true},
+		UserInfo: user.UserInfo{Name: "random", Admin: true},
 	}
 
 	token, err := t.SignedString(c.signKey)
@@ -627,11 +627,11 @@ func (c *Controller) wrongToken() []string {
 	}
 	tokens = append(tokens, token)
 
-	t.Claims = &CustomClaims{
-		&jwt.RegisteredClaims{
+	t.Claims = &user.CustomClaims{
+		RegisteredClaims: &jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now()),
 		},
-		UserInfo{adminUser.Password, false},
+		UserInfo: user.UserInfo{Name: adminUser.Password, Admin: false},
 	}
 
 	token, err = t.SignedString(c.signKey)
