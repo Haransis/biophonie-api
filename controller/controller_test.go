@@ -272,17 +272,17 @@ func TestPostGeoPoint(t *testing.T) {
 		JWT         string
 		StatusCode  int
 	}{
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.1, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusOK},
-		{"../testgeopoint/merle.wav", "", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100), PictureTemplate: "forest"}, standardToken, http.StatusOK},
-		{"../testgeopoint/merle.wav", "", geopoint.AddGeoPoint{Title: "Mountain by day", Latitude: 1.0, Longitude: 1.3, Date: time.Now(), Amplitudes: newAmplitudes(100), PictureTemplate: "mountain"}, standardToken, http.StatusOK},
-		{"../testgeopoint/merle.wav", "", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusBadRequest},
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Fo", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusBadRequest},
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night very late at night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusBadRequest},
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 100000001.0, Longitude: 1000000000.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusBadRequest},
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now().Add(200000 * time.Hour), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusBadRequest},
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, standardToken, http.StatusBadRequest},
-		{"../testgeopoint/merle.wav", "../main.go", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, standardToken, http.StatusBadRequest},
-		{"../main.go", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, standardToken, http.StatusBadRequest},
+		{"../testassets/merle.wav", "../testassets/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.1, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusOK},
+		{"../testassets/merle.wav", "", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100), PictureTemplate: "forest"}, standardToken, http.StatusOK},
+		{"../testassets/merle.wav", "", geopoint.AddGeoPoint{Title: "Mountain by day", Latitude: 1.0, Longitude: 1.3, Date: time.Now(), Amplitudes: newAmplitudes(100), PictureTemplate: "mountain"}, standardToken, http.StatusOK},
+		{"../testassets/merle.wav", "", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusBadRequest},
+		{"../testassets/merle.wav", "../testassets/russie.jpg", geopoint.AddGeoPoint{Title: "Fo", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusBadRequest},
+		{"../testassets/merle.wav", "../testassets/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night very late at night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusBadRequest},
+		{"../testassets/merle.wav", "../testassets/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 100000001.0, Longitude: 1000000000.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusBadRequest},
+		{"../testassets/merle.wav", "../testassets/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now().Add(200000 * time.Hour), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusBadRequest},
+		{"../testassets/merle.wav", "../testassets/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, standardToken, http.StatusBadRequest},
+		{"../testassets/merle.wav", "../main.go", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, standardToken, http.StatusBadRequest},
+		{"../main.go", "../testassets/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, standardToken, http.StatusBadRequest},
 	}
 
 	for _, test := range tests {
