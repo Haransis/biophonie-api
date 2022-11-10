@@ -9,7 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-const geoJsonFileName = "/geojson.json"
+const geoJsonFileName = "geojson.json"
 
 type Controller struct {
 	Db          *sqlx.DB
@@ -33,7 +33,7 @@ func NewController() *Controller {
 	if c.publicPath == "" {
 		log.Fatalf("public path is empty")
 	}
-	c.geoJsonPath = c.publicPath + geoJsonFileName
+	c.geoJsonPath = c.publicPath + string(os.PathSeparator) + geoJsonFileName
 	c.refreshGeoJson()
 
 	return c

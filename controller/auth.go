@@ -13,10 +13,9 @@ import (
 	"github.com/haran/biophonie-api/controller/user"
 )
 
-// location of the files used for signing and verification
-var (
-	privKeyPath = os.Getenv("KEYS_FOLDER") + "/app.rsa"     // openssl genrsa -out app.rsa keysize
-	pubKeyPath  = os.Getenv("KEYS_FOLDER") + "/app.rsa.pub" // openssl rsa -in app.rsa -pubout > app.rsa.pub
+const (
+	privKey = "app.rsa"
+	pubKey  = "app.rsa.pub"
 )
 
 func (c *Controller) Authorize(ctx *gin.Context) {
@@ -53,6 +52,9 @@ func (c *Controller) AuthorizeAdmin(ctx *gin.Context) {
 
 // read the key files before starting http handlers
 func (c *Controller) readKeys() {
+	privKeyPath := os.Getenv("SECRETS_FOLDER") + string(os.PathSeparator) + privKey // openssl genrsa -out app.rsa keysize
+	pubKeyPath := os.Getenv("SECRETS_FOLDER") + string(os.PathSeparator) + pubKey   // openssl rsa -in app.rsa -pubout > app.rsa.pub
+
 	signBytes, err := os.ReadFile(privKeyPath)
 	fatal(err)
 
