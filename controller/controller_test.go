@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cridenour/go-postgis"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/assert/v2"
 	"github.com/golang-jwt/jwt/v4"
@@ -29,22 +30,66 @@ import (
 var c *Controller
 var r *gin.Engine
 
-const (
-	geoIdEnabled  = 1
-	geoIdDisabled = 2
-)
-
 var adminUser user.User = user.User{
-	Id:        1,
-	Name:      "admin",
-	Password:  "57aba9df-969f-4871-a095-e916d06ba38b",
-	CreatedOn: time.Now().String(),
+	Id:       1,
+	Name:     "admin",
+	Password: "57aba9df-969f-4871-a095-e916d06ba38b",
+	Admin:    true,
 }
+var standardUser user.User = user.User{
+	Id:       2,
+	Name:     "alice",
+	Password: "57aca9df-969f-4861-a095-e916d06ba38b",
+	Admin:    false,
+}
+var adminToken string
+var standardToken string
 
-var adminPassword, _ = bcrypt.GenerateFromPassword([]byte(adminUser.Password), bcrypt.DefaultCost)
-
-var validUsers []user.User
-var validTokens []string
+var availableGeoPoint1 geopoint.DbGeoPoint = geopoint.DbGeoPoint{
+	GeoPoint: &geopoint.GeoPoint{
+		Id:         1,
+		Title:      "Enabled",
+		UserId:     1,
+		Latitude:   1.02,
+		Longitude:  1.0,
+		CreatedOn:  time.Now(),
+		Amplitudes: newAmplitudes(500),
+		Picture:    "forest",
+		Sound:      "sound1.wav",
+		Available:  true,
+	},
+	Location: postgis.PointS{SRID: geopoint.WGS84, X: 1.02, Y: 1.0},
+}
+var availableGeoPoint2 geopoint.DbGeoPoint = geopoint.DbGeoPoint{
+	GeoPoint: &geopoint.GeoPoint{
+		Id:         2,
+		Title:      "Enabled",
+		UserId:     2,
+		Latitude:   2.02,
+		Longitude:  2.0,
+		CreatedOn:  time.Now(),
+		Amplitudes: newAmplitudes(500),
+		Picture:    "forest",
+		Sound:      "sound2.wav",
+		Available:  true,
+	},
+	Location: postgis.PointS{SRID: geopoint.WGS84, X: 2.02, Y: 2.0},
+}
+var unavailableGeoPoint geopoint.DbGeoPoint = geopoint.DbGeoPoint{
+	GeoPoint: &geopoint.GeoPoint{
+		Id:         3,
+		Title:      "Disabled",
+		UserId:     1,
+		Latitude:   3.02,
+		Longitude:  3.0,
+		CreatedOn:  time.Now(),
+		Amplitudes: newAmplitudes(500),
+		Picture:    "sea",
+		Sound:      "sound4.wav",
+		Available:  false,
+	},
+	Location: postgis.PointS{SRID: geopoint.WGS84, X: 3.02, Y: 3.0},
+}
 
 func TestMain(m *testing.M) {
 	gin.SetMode(gin.TestMode)
@@ -53,9 +98,7 @@ func TestMain(m *testing.M) {
 	r = SetupRouter(c)
 	c.clearDatabase()
 	c.refreshGeoJson()
-	validUsers = make([]user.User, 0)
-	validUsers = append(validUsers, adminUser)
-	validTokens = make([]string, 0)
+	c.createTokens()
 
 	exitVal := m.Run()
 
@@ -73,10 +116,6 @@ func TestRefreshGeoJson(t *testing.T) {
 	if err := json.Unmarshal(bytesGeoJson, &geoJson); err != nil {
 		t.Error(err)
 		t.Fail()
-	}
-
-	if len(geoJson.Features) != 0 {
-		t.Error("test-related: geoJson was not cleared properly")
 	}
 }
 
@@ -97,8 +136,8 @@ func TestCreateUser(t *testing.T) {
 	}{
 		{user.AddUser{Name: "ev"}, http.StatusBadRequest},
 		{user.AddUser{Name: "alalalalalalalalalalalalalalalal"}, http.StatusBadRequest},
-		{user.AddUser{Name: "admin"}, http.StatusConflict},
 		{user.AddUser{Name: "bob"}, http.StatusOK},
+		{user.AddUser{Name: "bob"}, http.StatusConflict},
 		{user.AddUser{Name: "bobdu42"}, http.StatusOK},
 	}
 
@@ -109,31 +148,24 @@ func TestCreateUser(t *testing.T) {
 
 		r.ServeHTTP(w, req)
 		assert.Equal(t, test.StatusCode, w.Code)
-		if w.Code == http.StatusOK { // checks that token is not hashed
+
+		if test.StatusCode == http.StatusOK {
 			var got user.User
 			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
-				t.Error(err)
+				t.Errorf("response is not a user: %s", err)
 			}
-			assert.Equal(t, http.StatusOK, w.Code)
 			if _, err := uuid.Parse(got.Password); err != nil {
-				t.Error(err)
+				t.Errorf("password is not uuid: %s", err)
 			}
-			validUsers = append(validUsers, got)
-		}
 
-		if test.StatusCode == http.StatusOK { // checks that user is stored properly
-			w := httptest.NewRecorder()
-			req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/user/%s", test.AddUser.Name), nil)
-			r.ServeHTTP(w, req)
-
-			var got user.User
-			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
-				t.Error(err)
+			var created user.User
+			if err := c.Db.Get(&created, "SELECT * FROM accounts WHERE name = $1", test.AddUser.Name); err != nil {
+				t.Errorf("user was not stored: %s", err)
 			}
-			assert.Equal(t, http.StatusOK, w.Code)
 			assert.Equal(t, test.AddUser.Name, got.Name)
-			if _, err := uuid.Parse(got.Password); err == nil {
-				t.Fail()
+
+			if err := bcrypt.CompareHashAndPassword([]byte(created.Password), []byte(got.Password)); err != nil {
+				t.Errorf("password was not hashed properly: %s", err)
 			}
 		}
 	}
@@ -148,7 +180,7 @@ func TestGetUser(t *testing.T) {
 	}{
 		{user.User{Name: "alice"}, "eve", http.StatusNotFound},
 		{user.User{Name: "charles"}, "Charles", http.StatusNotFound},
-		{user.User{Name: "bob"}, "bob", http.StatusOK},
+		{user.User{Name: "alice"}, "alice", http.StatusOK},
 	}
 
 	for _, test := range tests {
@@ -158,13 +190,13 @@ func TestGetUser(t *testing.T) {
 		r.ServeHTTP(w, req)
 		assert.Equal(t, test.StatusCode, w.Code)
 
-		if test.StatusCode == http.StatusOK { // Check if user was created properly
+		if test.StatusCode == http.StatusOK {
 			var got user.User
 			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
 				t.Error(err)
 			}
 			assert.Equal(t, test.User.Name, got.Name)
-			assert.Equal(t, got.Password, "")
+			assert.Equal(t, got.Password, "") // password is not divulgated
 		}
 	}
 }
@@ -175,13 +207,12 @@ func TestAuthorizeUser(t *testing.T) {
 		AuthUser   user.AuthUser
 		StatusCode int
 	}{
-		{user.AuthUser{Name: validUsers[0].Name, Password: "random"}, http.StatusBadRequest},
-		{user.AuthUser{Name: validUsers[0].Name, Password: ""}, http.StatusBadRequest},
+		{user.AuthUser{Name: standardUser.Name, Password: "random"}, http.StatusBadRequest},
+		{user.AuthUser{Name: standardUser.Name, Password: ""}, http.StatusBadRequest},
 		{user.AuthUser{Name: "charles", Password: "9b768967-d491-4baa-a812-24ea8a9c274d"}, http.StatusNotFound},
-		{user.AuthUser{Name: validUsers[0].Name, Password: validUsers[1].Password}, http.StatusUnauthorized},
-		{user.AuthUser{Name: validUsers[0].Name, Password: validUsers[0].Password}, http.StatusOK},
-		{user.AuthUser{Name: validUsers[1].Name, Password: validUsers[1].Password}, http.StatusOK},
-		{user.AuthUser{Name: validUsers[2].Name, Password: validUsers[2].Password}, http.StatusOK},
+		{user.AuthUser{Name: standardUser.Name, Password: adminUser.Password}, http.StatusUnauthorized},
+		{user.AuthUser{Name: standardUser.Name, Password: standardUser.Password}, http.StatusOK},
+		{user.AuthUser{Name: adminUser.Name, Password: adminUser.Password}, http.StatusOK},
 	}
 
 	for _, test := range tests {
@@ -197,7 +228,12 @@ func TestAuthorizeUser(t *testing.T) {
 			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
 				t.Error(err)
 			}
-			validTokens = append(validTokens, got.Token)
+			_, err := jwt.Parse(got.Token, func(token *jwt.Token) (interface{}, error) {
+				return c.verifyKey, nil
+			})
+			if err != nil {
+				t.Errorf("could not parse returned token: %s", err)
+			}
 		}
 	}
 }
@@ -208,7 +244,7 @@ func TestPingAuthenticated(t *testing.T) {
 		JWT        string
 		StatusCode int
 	}{
-		{validTokens[0], http.StatusOK},
+		{standardToken, http.StatusOK},
 		{unvalidTokens[0], http.StatusNotFound},
 		{unvalidTokens[1], http.StatusUnauthorized},
 		{unvalidTokens[2], http.StatusUnauthorized},
@@ -236,17 +272,17 @@ func TestCreateGeoPoint(t *testing.T) {
 		JWT         string
 		StatusCode  int
 	}{
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.1, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusOK},
-		{"../testgeopoint/merle.wav", "", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100), PictureTemplate: "forest"}, validTokens[0], http.StatusOK},
-		{"../testgeopoint/merle.wav", "", geopoint.AddGeoPoint{Title: "Mountain by day", Latitude: 1.0, Longitude: 1.3, Date: time.Now(), Amplitudes: newAmplitudes(100), PictureTemplate: "mountain"}, validTokens[0], http.StatusOK},
-		{"../testgeopoint/merle.wav", "", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Fo", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night very late at night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 100000001.0, Longitude: 1000000000.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now().Add(200000 * time.Hour), Amplitudes: newAmplitudes(100)}, validTokens[0], http.StatusBadRequest},
-		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, validTokens[0], http.StatusBadRequest},
-		{"../testgeopoint/merle.wav", "../main.go", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, validTokens[0], http.StatusBadRequest},
-		{"../main.go", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, validTokens[0], http.StatusBadRequest},
+		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.1, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusOK},
+		{"../testgeopoint/merle.wav", "", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100), PictureTemplate: "forest"}, standardToken, http.StatusOK},
+		{"../testgeopoint/merle.wav", "", geopoint.AddGeoPoint{Title: "Mountain by day", Latitude: 1.0, Longitude: 1.3, Date: time.Now(), Amplitudes: newAmplitudes(100), PictureTemplate: "mountain"}, standardToken, http.StatusOK},
+		{"../testgeopoint/merle.wav", "", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusBadRequest},
+		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Fo", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusBadRequest},
+		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night very late at night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusBadRequest},
+		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 100000001.0, Longitude: 1000000000.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusBadRequest},
+		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now().Add(200000 * time.Hour), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusBadRequest},
+		{"../testgeopoint/merle.wav", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, standardToken, http.StatusBadRequest},
+		{"../testgeopoint/merle.wav", "../main.go", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, standardToken, http.StatusBadRequest},
+		{"../main.go", "../testgeopoint/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(1)}, standardToken, http.StatusBadRequest},
 	}
 
 	for _, test := range tests {
@@ -275,17 +311,18 @@ func TestCreateGeoPoint(t *testing.T) {
 }
 
 func TestEnableGeoPoint(t *testing.T) {
+	defer c.Db.MustExec("UPDATE geopoints SET available = FALSE WHERE id = $1", unavailableGeoPoint.Id)
+
 	tests := []struct {
 		GeoId      int
 		JWT        string
 		StatusCode int
 	}{
-		{-1, validTokens[0], http.StatusBadRequest},
-		{9999, validTokens[0], http.StatusNotFound},
-		{geoIdEnabled, validTokens[1], http.StatusUnauthorized},
-		{geoIdEnabled, validTokens[0], http.StatusOK},
-		{3, validTokens[0], http.StatusOK},
-		{geoIdEnabled, validTokens[0], http.StatusNotFound},
+		{-1, adminToken, http.StatusBadRequest},
+		{9999, adminToken, http.StatusNotFound},
+		{unavailableGeoPoint.Id, standardToken, http.StatusUnauthorized},
+		{unavailableGeoPoint.Id, adminToken, http.StatusOK},
+		{unavailableGeoPoint.Id, adminToken, http.StatusNotFound},
 	}
 	for _, test := range tests {
 		w := httptest.NewRecorder()
@@ -299,21 +336,19 @@ func TestEnableGeoPoint(t *testing.T) {
 		r.ServeHTTP(w, req)
 		assert.Equal(t, test.StatusCode, w.Code)
 	}
-}
 
-func TestAppendGeoJson(t *testing.T) {
 	bytesGeoJson, err := ioutil.ReadFile(c.geoJsonPath)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("cannot read geojson file: %s", err)
 	}
 
 	var geoJson geoJson
 	if err := json.Unmarshal(bytesGeoJson, &geoJson); err != nil {
-		t.Error(err)
+		t.Errorf("geojson was not properly refreshed: %s", err)
 	}
 
 	assert.NotEqual(t, len(geoJson.Features), 0)
-	assert.Equal(t, geoJson.Features[0].Properties.Name, "Forest by night")
+	assert.Equal(t, geoJson.Features[unavailableGeoPoint.Id-1].Properties.Name, unavailableGeoPoint.Title)
 }
 
 func TestGetGeoPoint(t *testing.T) {
@@ -322,8 +357,8 @@ func TestGetGeoPoint(t *testing.T) {
 		StatusCode int
 	}{
 		{geopoint.GeoPoint{Id: 9999, Title: "Forest by night"}, http.StatusNotFound},
-		{geopoint.GeoPoint{Id: geoIdDisabled, Title: "Forest by night"}, http.StatusForbidden},
-		{geopoint.GeoPoint{Id: geoIdEnabled, Title: "Forest by night"}, http.StatusOK},
+		{*unavailableGeoPoint.GeoPoint, http.StatusForbidden},
+		{*availableGeoPoint1.GeoPoint, http.StatusOK},
 	}
 
 	for _, test := range tests {
@@ -353,9 +388,9 @@ func TestGetClosestGeoPoint(t *testing.T) {
 	}{
 		{1, -10000000000, []string{}, http.StatusBadRequest, 0},
 		{-10000, 1.0, []string{}, http.StatusBadRequest, 0},
-		{1.0, 1.1, []string{}, http.StatusOK, geoIdEnabled},
-		{1.0, 1.1, []string{fmt.Sprint(geoIdEnabled)}, http.StatusOK, 3},
-		{1.0, 1.1, []string{fmt.Sprint(geoIdEnabled), "3"}, http.StatusNotFound, 0},
+		{1.0, 1.1, []string{}, http.StatusOK, availableGeoPoint1.Id},
+		{1.0, 1.1, []string{fmt.Sprint(availableGeoPoint1.Id)}, http.StatusOK, availableGeoPoint2.Id},
+		{1.0, 1.1, []string{fmt.Sprint(availableGeoPoint1.Id), fmt.Sprint(availableGeoPoint2.Id)}, http.StatusNotFound, 0},
 	}
 
 	for _, test := range tests {
@@ -385,12 +420,11 @@ func TestGetRestrictedGeoPoint(t *testing.T) {
 		JWT        string
 		StatusCode int
 	}{
-		{geopoint.GeoPoint{Id: 9999, Title: "Forest by night"}, validTokens[1], http.StatusUnauthorized},
-		{geopoint.GeoPoint{Id: geoIdDisabled, Title: "Forest by night"}, validTokens[1], http.StatusUnauthorized},
-		{geopoint.GeoPoint{Id: geoIdEnabled, Title: "Forest by night"}, validTokens[1], http.StatusUnauthorized},
-		{geopoint.GeoPoint{Id: 9999, Title: "Forest by night"}, validTokens[0], http.StatusNotFound},
-		{geopoint.GeoPoint{Id: geoIdDisabled, Title: "Forest by night"}, validTokens[0], http.StatusOK},
-		{geopoint.GeoPoint{Id: geoIdEnabled, Title: "Forest by night"}, validTokens[0], http.StatusOK},
+		{geopoint.GeoPoint{Id: 9999, Title: "Forest by night"}, standardToken, http.StatusUnauthorized},
+		{*unavailableGeoPoint.GeoPoint, standardToken, http.StatusUnauthorized},
+		{geopoint.GeoPoint{Id: 9999, Title: "Forest by night"}, adminToken, http.StatusNotFound},
+		{*unavailableGeoPoint.GeoPoint, adminToken, http.StatusOK},
+		{*availableGeoPoint1.GeoPoint, adminToken, http.StatusOK},
 	}
 
 	for _, test := range tests {
@@ -417,9 +451,10 @@ func TestDeleteGeoPoint(t *testing.T) {
 		JWT        string
 		StatusCode int
 	}{
-		{geoIdEnabled, "", http.StatusUnauthorized},
-		{12000, validTokens[0], http.StatusNotFound},
-		{geoIdEnabled, validTokens[0], http.StatusOK},
+		{availableGeoPoint1.Id, "", http.StatusUnauthorized},
+		{availableGeoPoint1.Id, standardToken, http.StatusUnauthorized},
+		{12000, adminToken, http.StatusNotFound},
+		{availableGeoPoint1.Id, adminToken, http.StatusOK},
 	}
 
 	for _, test := range tests {
@@ -444,14 +479,16 @@ func TestDeleteGeoPoint(t *testing.T) {
 }
 
 func TestMakeAdmin(t *testing.T) {
+	defer c.Db.Exec("UPDATE accounts SET admin = TRUE WHERE id = $1", standardUser.Id)
+
 	tests := []struct {
 		Id         int
 		JWT        string
 		StatusCode int
 	}{
-		{validUsers[1].Id, validTokens[1], http.StatusUnauthorized},
-		{99999, validTokens[0], http.StatusNotFound},
-		{validUsers[1].Id, validTokens[0], http.StatusOK},
+		{standardUser.Id, standardToken, http.StatusUnauthorized},
+		{99999, adminToken, http.StatusNotFound},
+		{standardUser.Id, adminToken, http.StatusOK},
 	}
 
 	for _, test := range tests {
@@ -463,12 +500,9 @@ func TestMakeAdmin(t *testing.T) {
 		assert.Equal(t, test.StatusCode, w.Code)
 
 		if test.StatusCode == http.StatusOK {
-			w := httptest.NewRecorder()
-			req, _ := http.NewRequest(http.MethodGet, "/api/v1/user/"+validUsers[1].Name, nil)
-			r.ServeHTTP(w, req)
 			var got user.User
-			if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
-				t.Error(err)
+			if err := c.Db.Get(&got, "SELECT * FROM accounts WHERE id = $1", test.Id); err != nil {
+				t.Errorf("admined user not in database: %s", err)
 			}
 			assert.Equal(t, true, got.Admin)
 		}
@@ -476,11 +510,22 @@ func TestMakeAdmin(t *testing.T) {
 }
 
 func (c *Controller) clearDatabase() {
+	var hashAdminPwd, _ = bcrypt.GenerateFromPassword([]byte(adminUser.Password), bcrypt.DefaultCost)
+	var hashAlicePwd, _ = bcrypt.GenerateFromPassword([]byte(standardUser.Password), bcrypt.DefaultCost)
 	tx := c.Db.MustBegin()
 	tx.MustExec("TRUNCATE TABLE accounts RESTART IDENTITY")
 	tx.MustExec("TRUNCATE TABLE geopoints RESTART IDENTITY")
-	tx.MustExec("INSERT INTO accounts (name, created_on, password, admin) VALUES ($1,now(),$2,'t') ON CONFLICT DO NOTHING", "admin", adminPassword)
+	tx.MustExec("INSERT INTO accounts (name, created_on, password, admin) VALUES ($1,now(),$2,$3) ON CONFLICT DO NOTHING", adminUser.Name, hashAdminPwd, adminUser.Admin)
+	tx.MustExec("INSERT INTO accounts (name, created_on, password, admin) VALUES ($1,now(),$2,$3) ON CONFLICT DO NOTHING", standardUser.Name, hashAlicePwd, adminUser.Admin)
+	tx.NamedExec("INSERT INTO geopoints (title, user_id, location, amplitudes, picture, sound, created_on, available) VALUES (:title,:user_id,GeomFromEWKB(:location),:amplitudes,:picture,:sound,:created_on,:available)", availableGeoPoint1)
+	tx.NamedExec("INSERT INTO geopoints (title, user_id, location, amplitudes, picture, sound, created_on, available) VALUES (:title,:user_id,GeomFromEWKB(:location),:amplitudes,:picture,:sound,:created_on,:available)", availableGeoPoint2)
+	tx.NamedExec("INSERT INTO geopoints (title, user_id, location, amplitudes, picture, sound, created_on, available) VALUES (:title,:user_id,GeomFromEWKB(:location),:amplitudes,:picture,:sound,:created_on,:available)", unavailableGeoPoint)
 	tx.Commit()
+}
+
+func (c *Controller) createTokens() {
+	adminToken, _ = c.createToken(adminUser.Name, adminUser.Admin)
+	standardToken, _ = c.createToken(standardUser.Name, standardUser.Admin)
 }
 
 func preparePublicDir() {
@@ -558,7 +603,7 @@ func (c *Controller) wrongToken() []string {
 		&jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now()),
 		},
-		UserInfo{validUsers[0].Name, false},
+		UserInfo{adminUser.Password, false},
 	}
 
 	token, err = t.SignedString(c.signKey)
