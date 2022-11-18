@@ -149,7 +149,7 @@ paths:
       summary: get a geopoint
       tags:
       - Geopoint
-  /geopoint/{id}/picture:
+  /geopoint/{id}/assets:
     get:
       consumes:
       - application/json
@@ -179,40 +179,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/controller.ErrMsg'
-      summary: get the picture filename
-      tags:
-      - Geopoint
-  /geopoint/{id}/sound:
-    get:
-      consumes:
-      - application/json
-      description: located in assets/
-      parameters:
-      - description: geopoint id
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/controller.ErrMsg'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/controller.ErrMsg'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/controller.ErrMsg'
-      summary: get the sound filename
+      summary: get the picture and sound filenames
       tags:
       - Geopoint
   /geopoint/closest/to/{latitude}/{longitude}:
