@@ -12,11 +12,12 @@ import (
 const geoJsonFileName = "geojson.json"
 
 type Controller struct {
-	Db          *sqlx.DB
-	publicPath  string
-	geoJsonPath string
-	verifyKey   *rsa.PublicKey
-	signKey     *rsa.PrivateKey
+	Db           *sqlx.DB
+	assetsFolder string
+	webFolder    string
+	geoJsonPath  string
+	verifyKey    *rsa.PublicKey
+	signKey      *rsa.PrivateKey
 }
 
 func NewController() *Controller {
@@ -29,11 +30,17 @@ func NewController() *Controller {
 	}
 	c.Db = db
 
-	c.publicPath = os.Getenv("PUBLIC_PATH")
-	if c.publicPath == "" {
-		log.Fatalf("public path is empty")
+	c.assetsFolder = os.Getenv("ASSETS_FOLDER")
+	if c.assetsFolder == "" {
+		log.Fatalf("assets path is empty")
 	}
-	c.geoJsonPath = c.publicPath + string(os.PathSeparator) + geoJsonFileName
+
+	c.webFolder = os.Getenv("WEB_FOLDER")
+	if c.webFolder == "" {
+		log.Fatalf("web path is empty")
+	}
+
+	c.geoJsonPath = c.assetsFolder + string(os.PathSeparator) + geoJsonFileName
 	c.refreshGeoJson()
 
 	return c

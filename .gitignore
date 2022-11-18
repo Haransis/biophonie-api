@@ -2,3 +2,5 @@
 bin/
 .vscode
 __debug_bin
+secrets/
+fly.toml

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/swaggo/gin-swagger/swaggerFiles"
@@ -13,9 +14,10 @@ func SetupRouter(c *Controller) *gin.Engine {
 	// r.Use(cors.Default()) // use for sound streaming
 	r.SetTrustedProxies(nil)
 	r.MaxMultipartMemory = 100000000 // 100 MB
+	r.Use(static.Serve("/", static.LocalFile(c.webFolder, false)))
 	v1 := r.Group("/api/v1")
 	{
-		v1.Static("/assets", c.publicPath)
+		v1.Static("/assets", c.assetsFolder)
 		users := v1.Group("/user")
 		{
 			users.GET("/:name", c.GetUser)

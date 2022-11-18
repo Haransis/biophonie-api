@@ -33,7 +33,7 @@ type AddGeoPoint struct {
 	Longitude       float64   `json:"longitude" example:"-120.357448" validate:"required,longitude"`
 	Date            time.Time `json:"date" example:"2022-05-26T11:17:35.079344Z" validate:"required,lt"`
 	Amplitudes      []float64 `json:"amplitudes" example:"0,1,2,3,45,3,2,1" validate:"required,min=100,max=1000"`
-	PictureTemplate string    `json:"picture_template" example:"forest" validate:"omitempty,oneof=forest sea mountain swamp"`
+	PictureTemplate string    `json:"picture_template" example:"forest" validate:"omitempty,oneof=clearing desert fields garden grassland hedge lake mountains potager rainforest temperateforest"`
 }
 
 type BindGeoPoint struct {
