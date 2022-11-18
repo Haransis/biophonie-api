@@ -273,8 +273,8 @@ func TestPostGeoPoint(t *testing.T) {
 		StatusCode  int
 	}{
 		{"../testassets/merle.wav", "../testassets/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.1, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusOK},
-		{"../testassets/merle.wav", "", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100), PictureTemplate: "forest"}, standardToken, http.StatusOK},
-		{"../testassets/merle.wav", "", geopoint.AddGeoPoint{Title: "Mountain by day", Latitude: 1.0, Longitude: 1.3, Date: time.Now(), Amplitudes: newAmplitudes(100), PictureTemplate: "mountain"}, standardToken, http.StatusOK},
+		{"../testassets/merle.wav", "", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100), PictureTemplate: "clearing"}, standardToken, http.StatusOK},
+		{"../testassets/merle.wav", "", geopoint.AddGeoPoint{Title: "Mountain by day", Latitude: 1.0, Longitude: 1.3, Date: time.Now(), Amplitudes: newAmplitudes(100), PictureTemplate: "desert"}, standardToken, http.StatusOK},
 		{"../testassets/merle.wav", "", geopoint.AddGeoPoint{Title: "Forest by night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusBadRequest},
 		{"../testassets/merle.wav", "../testassets/russie.jpg", geopoint.AddGeoPoint{Title: "Fo", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusBadRequest},
 		{"../testassets/merle.wav", "../testassets/russie.jpg", geopoint.AddGeoPoint{Title: "Forest by night very late at night", Latitude: 1.0, Longitude: 1.2, Date: time.Now(), Amplitudes: newAmplitudes(100)}, standardToken, http.StatusBadRequest},
@@ -306,6 +306,7 @@ func TestPostGeoPoint(t *testing.T) {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", test.JWT))
 
 		r.ServeHTTP(w, req)
+		fmt.Println(w.Body.String())
 		assert.Equal(t, test.StatusCode, w.Code)
 	}
 }
@@ -558,8 +559,9 @@ func (c *Controller) createTokens() {
 
 func preparePublicDir() {
 	os.RemoveAll("/tmp/public")
-	os.MkdirAll("/tmp/public/picture", os.ModePerm)
-	os.MkdirAll("/tmp/public/sound", os.ModePerm)
+	os.MkdirAll("/tmp/public/assets/picture", os.ModePerm)
+	os.MkdirAll("/tmp/public/assets/sound", os.ModePerm)
+	os.Create("/tmp/public/assets/geojson.json")
 }
 
 func newAmplitudes(length int) []float64 {
@@ -646,16 +648,16 @@ func (c *Controller) wrongToken() []string {
 
 type geoJson struct {
 	Type     string    `json:"type"`
-	Features []Feature `json:"features"`
+	Features []feature `json:"features"`
 }
 
-type Feature struct {
+type feature struct {
 	Type        string     `json:"type"`
 	Coordinates []float64  `json:"coordinates"`
-	Properties  Properties `json:"properties"`
+	Properties  properties `json:"properties"`
 }
 
-type Properties struct {
+type properties struct {
 	Name string `json:"name"`
 	Id   int    `json:"id"`
 }
