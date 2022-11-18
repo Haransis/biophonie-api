@@ -4,3 +4,4 @@ bin/
 __debug_bin
 secrets/
 fly.toml
+biophonie-api
