@@ -6,25 +6,14 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/haran/biophonie-api/database"
 )
 
 const MINSIZE = 49
 
-const geosAsGeoJson = `--sql
-SELECT json_build_object(
-    'type', 'FeatureCollection',
-    'features', json_agg(ST_AsGeoJSON(t.*)::json)
-    )
-FROM (SELECT id, title, location FROM geopoints WHERE available = true) as t(id, name, geom);
-`
-const geoAsFeat = `--sql
-SELECT ST_AsGeoJSON(t.*)
-FROM (SELECT id,title,location FROM geopoints WHERE id = $1) AS t(id, name, coordinates);
-`
-
 func (c *Controller) refreshGeoJson() {
 	geoJson := make([]byte, 0)
-	err := c.Db.Get(&geoJson, geosAsGeoJson)
+	err := c.Db.Get(&geoJson, database.GeosAsGeoJson)
 	if err != nil {
 		log.Fatalf("refreshGeoJson: could not query geojson: %s", err)
 	}
@@ -45,7 +34,7 @@ func (c *Controller) AppendGeoJson(ctx *gin.Context) {
 	geoId := ctx.GetUint64("geoId")
 
 	featBytes := make([]byte, 0)
-	err := c.Db.Get(&featBytes, geoAsFeat, geoId)
+	err := c.Db.Get(&featBytes, database.GeoAsFeat, geoId)
 	if err != nil {
 		log.Println("could not get geopoint to append geojson: ", err)
 		return

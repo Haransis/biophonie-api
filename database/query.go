@@ -71,4 +71,17 @@ const (
 	MakeAdmin = `--sql
 		UPDATE accounts SET admin = TRUE WHERE id = $1
 	`
+
+	GeosAsGeoJson = `--sql
+		SELECT json_build_object(
+			'type', 'FeatureCollection',
+			'features', json_agg(ST_AsGeoJSON(t.*)::json)
+			)
+		FROM (SELECT id, title, location FROM geopoints WHERE available = true) as t(id, name, geom);
+	`
+
+	GeoAsFeat = `--sql
+		SELECT ST_AsGeoJSON(t.*)
+		FROM (SELECT id,title,location FROM geopoints WHERE id = $1) AS t(id, name, coordinates);
+	`
 )
