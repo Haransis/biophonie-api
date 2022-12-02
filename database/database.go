@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/jmoiron/sqlx"
@@ -20,8 +21,13 @@ func InitDb() (*sqlx.DB, error) {
 		return db, fmt.Errorf("error opening database: %q", err)
 	}
 
-	adminPassword := os.Getenv("SECRETS_FOLDER") + string(os.PathSeparator) + adminKey
-	adminHash, _ := bcrypt.GenerateFromPassword([]byte(adminPassword), bcrypt.DefaultCost)
+	adminFile := os.Getenv("SECRETS_FOLDER") + string(os.PathSeparator) + adminKey
+	adminPassword, err := ioutil.ReadFile(adminFile)
+	if err != nil {
+		return db, fmt.Errorf("error opening admin file: %q", err)
+	}
+
+	adminHash, _ := bcrypt.GenerateFromPassword(adminPassword, bcrypt.DefaultCost)
 	db.MustExec(initTables)
 	db.MustExec(createAdmin, "admin", adminHash)
 
