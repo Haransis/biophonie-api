@@ -266,14 +266,14 @@ var doc = `{
                     },
                     {
                         "type": "file",
-                        "description": "geopoint sound",
+                        "description": "geopoint sound in aac",
                         "name": "sound",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "file",
-                        "description": "geopoint picture",
+                        "description": "geopoint picture in webp",
                         "name": "picture",
                         "in": "formData"
                     },

@@ -265,12 +265,12 @@ paths:
         name: geopoint
         required: true
         type: string
-      - description: geopoint sound
+      - description: geopoint sound in aac
         in: formData
         name: sound
         required: true
         type: file
-      - description: geopoint picture
+      - description: geopoint picture in webp
         in: formData
         name: picture
         type: file

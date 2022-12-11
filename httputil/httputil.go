@@ -3,9 +3,9 @@ package httputil
 import (
 	"log"
 	"mime/multipart"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/h2non/filetype/matchers"
 )
 
 // NewError example
@@ -23,7 +23,7 @@ type HTTPError struct {
 	Message string `json:"message" example:"status bad request"`
 }
 
-func CheckFileContentType(fileHeader *multipart.FileHeader, checkType string) bool {
+func CheckFileContentType(fileHeader *multipart.FileHeader, matcher matchers.Matcher) bool {
 	if fileHeader == nil {
 		return false
 	}
@@ -34,25 +34,12 @@ func CheckFileContentType(fileHeader *multipart.FileHeader, checkType string) bo
 	}
 	defer file.Close()
 
-	detectedType, err := getFileContentType(file)
+	buffer := make([]byte, 261)
+
+	_, err = file.Read(buffer)
 	if err != nil {
-		log.Panicln(err)
+		return false
 	}
 
-	return detectedType == checkType
-}
-
-func getFileContentType(out multipart.File) (string, error) {
-
-	// Only the first 512 bytes are used to sniff the content type.
-	buffer := make([]byte, 512)
-
-	_, err := out.Read(buffer)
-	if err != nil {
-		return "", err
-	}
-
-	contentType := http.DetectContentType(buffer)
-
-	return contentType, nil
+	return matcher(buffer)
 }

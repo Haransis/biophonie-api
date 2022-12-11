@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/h2non/filetype/matchers"
 	"github.com/haran/biophonie-api/controller/geopoint"
 	"github.com/haran/biophonie-api/controller/user"
 	"github.com/haran/biophonie-api/database"
@@ -351,8 +352,8 @@ func (c *Controller) MakeAdmin(ctx *gin.Context) {
 // @Produce json
 // @Tags Geopoint
 // @Param geopoint formData string true "geopoint infos in a utf-8 json file"
-// @Param sound formData file true "geopoint sound"
-// @Param picture formData file false "geopoint picture"
+// @Param sound formData file true "geopoint sound in aac"
+// @Param picture formData file false "geopoint picture in webp"
 // @Param Authorization header string true "Authentication header"
 // @Success 200 {object} geopoint.GeoPoint
 // @Failure 404 {object} controller.ErrMsg
@@ -382,20 +383,20 @@ func (c *Controller) BindGeoPoint(ctx *gin.Context) {
 		return
 	}
 
-	soundName := uuid.NewString() + ".wav"
-	pictureName := uuid.NewString() + ".jpg"
-	if !httputil.CheckFileContentType(bindGeo.Sound, "audio/wave") {
-		ctx.AbortWithError(http.StatusBadRequest, errors.New("sound was not wave file")).SetType(gin.ErrorTypePublic)
+	soundName := uuid.NewString() + ".aac"
+	pictureName := uuid.NewString() + ".webp"
+	if !httputil.CheckFileContentType(bindGeo.Sound, matchers.Aac) {
+		ctx.AbortWithError(http.StatusBadRequest, errors.New("sound was not aac file")).SetType(gin.ErrorTypePublic)
 		return
 	}
 
 	if addGeo.PictureTemplate == "" {
-		if !httputil.CheckFileContentType(bindGeo.Picture, "image/jpeg") {
-			ctx.AbortWithError(http.StatusBadRequest, errors.New("image was not jpeg file")).SetType(gin.ErrorTypePublic)
+		if !httputil.CheckFileContentType(bindGeo.Picture, matchers.Webp) {
+			ctx.AbortWithError(http.StatusBadRequest, errors.New("image was not webp file")).SetType(gin.ErrorTypePublic)
 			return
 		}
 	} else {
-		pictureName = addGeo.PictureTemplate + ".jpg"
+		pictureName = addGeo.PictureTemplate + ".webp"
 	}
 
 	addGeo.UserId, _ = ctx.MustGet("userId").(int)

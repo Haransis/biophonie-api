@@ -44,7 +44,9 @@ require (
 )
 
 require (
+	github.com/gabriel-vasile/mimetype v1.4.1 // indirect
 	github.com/gin-contrib/static v0.0.1 // indirect
 	github.com/goccy/go-json v0.9.11 // indirect
+	github.com/h2non/filetype v1.1.3 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 )
