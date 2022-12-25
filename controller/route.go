@@ -245,6 +245,13 @@ func (c *Controller) DeleteGeoPoint(ctx *gin.Context) {
 		return
 	}
 
+	var geopoint geopoint.DbGeoPoint
+	if err := c.Db.Get(&geopoint, database.GetGeoPoint, id); err != nil {
+		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not get geopoint")
+		ctx.Abort()
+		return
+	}
+
 	result, err := c.Db.Exec(database.DeleteGeoPoint, id)
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, err)
@@ -260,6 +267,9 @@ func (c *Controller) DeleteGeoPoint(ctx *gin.Context) {
 		ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("not found or already deleted"))
 		return
 	}
+
+	ctx.Set("picture", geopoint.Picture)
+	ctx.Set("sound", geopoint.Sound)
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "geopoint was deleted"})
 }
