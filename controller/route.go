@@ -209,7 +209,7 @@ func (c *Controller) GetClosestGeoPoint(ctx *gin.Context) {
 		return
 	}
 
-	target := postgis.PointS{X: closestTo.Latitude, Y: closestTo.Longitude, SRID: geopoint.WGS84}
+	target := postgis.PointS{X: closestTo.Longitude, Y: closestTo.Latitude, SRID: geopoint.WGS84}
 	if closestTo.SRID != nil {
 		target.SRID = *closestTo.SRID
 	}
