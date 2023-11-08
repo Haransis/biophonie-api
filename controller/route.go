@@ -209,7 +209,7 @@ func (c *Controller) GetClosestGeoPoint(ctx *gin.Context) {
 		return
 	}
 
-	target := postgis.PointS{X: closestTo.Latitude, Y: closestTo.Longitude, SRID: geopoint.WGS84}
+	target := postgis.PointS{X: closestTo.Longitude, Y: closestTo.Latitude, SRID: geopoint.WGS84}
 	if closestTo.SRID != nil {
 		target.SRID = *closestTo.SRID
 	}
@@ -245,6 +245,13 @@ func (c *Controller) DeleteGeoPoint(ctx *gin.Context) {
 		return
 	}
 
+	var geopoint geopoint.DbGeoPoint
+	if err := c.Db.Get(&geopoint, database.GetGeoPoint, id); err != nil {
+		ctx.Error(err).SetType(gin.ErrorTypeAny).SetMeta("-> could not get geopoint")
+		ctx.Abort()
+		return
+	}
+
 	result, err := c.Db.Exec(database.DeleteGeoPoint, id)
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, err)
@@ -260,6 +267,9 @@ func (c *Controller) DeleteGeoPoint(ctx *gin.Context) {
 		ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("not found or already deleted"))
 		return
 	}
+
+	ctx.Set("picture", geopoint.Picture)
+	ctx.Set("sound", geopoint.Sound)
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "geopoint was deleted"})
 }

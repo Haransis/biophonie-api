@@ -29,6 +29,21 @@ func (c *Controller) refreshGeoJson() {
 	}
 }
 
+func (c *Controller) ClearGeoPoint(ctx *gin.Context) {
+	ctx.Next()
+	picture := ctx.GetString("picture")
+	sound := ctx.GetString("sound")
+
+	if err := os.Remove(picture); err != nil {
+		log.Println("could not rm picture: ", err)
+	}
+	if err := os.Remove(sound); err != nil {
+		log.Println("could not rm sound: ", err)
+	}
+
+	c.refreshGeoJson()
+}
+
 func (c *Controller) AppendGeoJson(ctx *gin.Context) {
 	ctx.Next()
 	geoId := ctx.GetUint64("geoId")

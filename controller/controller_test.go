@@ -489,6 +489,14 @@ func TestDeleteGeoPoint(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		var toDelete geopoint.DbGeoPoint
+
+		if test.StatusCode == http.StatusOK {
+			if err := c.Db.Get(&toDelete, "SELECT * FROM geopoints WHERE id = $1", test.IdToDelete); err != nil {
+				t.Fatalf("could not get geopoint: %s", err)
+			}
+		}
+
 		w := httptest.NewRecorder()
 
 		req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/restricted/geopoint/%d", test.IdToDelete), nil)
@@ -505,6 +513,14 @@ func TestDeleteGeoPoint(t *testing.T) {
 			var geoPoint geopoint.DbGeoPoint
 			err := c.Db.Get(&geoPoint, "SELECT * FROM geopoints WHERE id = $1", test.IdToDelete)
 			assert.Equal(t, err, sql.ErrNoRows)
+
+			_, err = os.Open(toDelete.Picture)
+			_, ok := err.(*os.PathError)
+			assert.Equal(t, ok, true)
+
+			_, err = os.Open(toDelete.Picture)
+			_, ok = err.(*os.PathError)
+			assert.Equal(t, ok, true)
 		}
 	}
 }
